@@ -36,21 +36,57 @@ def symmetric_search(queries, corpus, k=1):
     return result
 
 
+def sentence_similarity(sentences1, sentences2):
+    model = SentenceTransformer('all-MiniLM-L6-v2')
+
+    # Compute embedding for both lists
+    embeddings1 = model.encode(sentences1, convert_to_tensor=True)
+    embeddings2 = model.encode(sentences2, convert_to_tensor=True)
+
+    # Compute cosine-similarits
+    cosine_scores = util.pytorch_cos_sim(embeddings1, embeddings2)
+
+    # Find the pairs with the highest cosine similarity scores
+    pairs = []
+    for i in range(len(cosine_scores)):
+        for j in range(len(cosine_scores)):
+            pairs.append({'index': [i, j], 'score': cosine_scores[i][j]})
+
+    # Sort scores in decreasing order
+    pairs = sorted(pairs, key=lambda x: x['score'], reverse=True)
+
+    final = []
+    for pair in pairs[0:5]:
+        i, j = pair['index']
+        print("{} \t\t {} \t\t Score: {:.4f}".format(sentences1[i], sentences2[j], pair['score']))
+        final.append(sentences1[i])
+    return final
+
+
 if __name__ == '__main__':
 
     # Corpus with example sentences
     corpus = ['A man is eating food.',
-          'A man is eating a piece of bread.',
-          'The girl is carrying a baby.',
-          'A man is riding a horse.',
-          'A woman is playing violin.',
-          'Two men pushed carts through the woods.',
-          'A man is riding a white horse on an enclosed ground.',
-          'A monkey is playing drums.',
-          'A cheetah is running behind its prey.'
-          ]
+              'A man is eating a piece of bread.',
+              'The girl is carrying a baby.',
+              'A man is riding a horse.',
+              'A woman is playing violin.',
+              'Two men pushed carts through the woods.',
+              'A man is riding a white horse on an enclosed ground.',
+              'A monkey is playing drums.',
+              'A cheetah is running behind its prey.'
+              ]
     # Query sentences:
     queries = ['A man is eating pasta.', 'Someone in a gorilla costume is playing a set of drums.',
                'A cheetah chases prey on across a field.']
 
+    sentences1 = ['The cat sits outside',
+                  'A man is playing guitar',
+                  'The new movie is awesome']
+
+    sentences2 = ['The dog plays in the garden',
+                  'A woman watches TV',
+                  'The new movie is so great']
+
     symmetric_search(queries, corpus)
+    sentence_similarity(sentences1, sentences2)

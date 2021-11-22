@@ -7,6 +7,7 @@ import spacy
 import textacy
 import logging
 from semantic_search import symmetric_search
+from config import *
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                     datefmt='%m/%d/%Y %H:%M:%S',
@@ -52,86 +53,116 @@ def get_personx(input_event, use_chunk=True):
 def expansions_to_sentences(expansions, sentences):
     all_contexts = {}
     relation_map = {"AtLocation": "is located at",
-                    # "CapableOf": "is capable of",
-                    # "Desires": "desires",
-                    "xIntent": "intended",
+                    "CapableOf": "is capable of",
+                    "Causes": "causes",
+                    "HasProperty": "has property",
+                    "MadeOf": "is made of",
+                    "NotCapableOf": "is not capable of",
+                    "NotDesires": "does not desire",
+                    "NotHasProperty": "does not have the property",
+                    "NotMadeOf": "is not made of",
+                    "RelatedTo": "is related to",
+                    "UsedFor": "is used for",
+                    "xAttr": "is seen as ",
+                    "xEffect": "sees the effect",
+                    "xIntent": "intends",
                     "xNeed": "needed to",
-                    "xEffect": "then",
                     "xReact": "reacts",
-                    "xWant": "wants",
-                    "xAttr": "is seen as"}
+                    "xReason": "reasons",
+                    "xWant": "wants"}
     for key, exp in expansions.items():
         context = []
         personx, _ = get_personx(sentences[key])  # the sentence expanded by comet
         for relation, beams in exp.items():
             if relation in relation_map:
-                context.append(personx + " " + relation_map[relation] + " " + beams[0])
+                for beam in beams:
+                    if beam != " none":
+                        context.append(personx + " " + relation_map[relation] + " " + beam)
         all_contexts[key] = context
     return all_contexts
 
 
-def pick_expansions_method1(expanded_sentences, questions_df):
+def pick_expansions_method1(caption_expanded, questions_df):
     final_context = {}
-    for key, context in expanded_sentences.items():
+    for key, context in caption_expanded.items():
         img_id = key.replace('COCO_train2014_000000', "")
         img_id = img_id.replace('.jpg', "")
         df_img = questions_df[questions_df['image_id'] == img_id]
-        queries = df_img['question'].values
-        picked_context = symmetric_search(queries, expansions, k=2)
-        final_context[img_id] = picked_context
+        queries = list(df_img['question'].values)
+        if queries and context:
+            print(queries)
+            print(context)
+            picked_context = symmetric_search(queries, context, k=2)
+            image_dict = dict(zip(df_img['question_id'].values, picked_context))
+            final_context[img_id] = image_dict
     return final_context
-
-
 
 
 def show_image(image_path, text="", title=""):
     fig, (ax1, ax2) = plt.subplots(1, 2)
     fig.suptitle(title)
     # plt.rcParams["figure.figsize"] = (15, 15)
-    plt.rcParams.update({'font.size': 10})
+    plt.rcParams.update({'font.size': 8})
     plt.xticks([])
     plt.yticks([])
     plt.box(False)
     ax2.text(0.1, 0.1, text, wrap=True)
     img = mpimg.imread(image_path)
     imgplot = ax1.imshow(img)
+    plt.show()
 
 
 if __name__ == '__main__':
     # Open saved captions predictions, comet expansions for captions and questions
-    captions_path = 'caption_expansions.json'
-    comet_expansions_path = 'caption_comet_expansions.json'
-    images_path = 'train2014'
-    questions_path = 'v2_OpenEnded_mscoco_train2014_questions.json'
-
     with open(captions_path, 'r') as fp:
         captions = json.loads(fp.read())
-    with open(comet_expansions_path, 'r') as fp:
-        expansions = json.loads(fp.read())
+    with open(captions_comet_expansions_path, 'r') as fp:
+        caption_expansions = json.loads(fp.read())
     with open(questions_path, 'r') as fp:
         questions = json.loads(fp.read())
+    with open(questions_comet_expansions_path, 'r') as fp:
+        question_expansions = json.loads(fp.read())
 
     # Get some sample images, expansions and questions and plot them
     df = pd.DataFrame(questions['questions'])
+
     df['image_id'] = df['image_id'].astype(str)
-    image_groups = df.groupby('image_id')
+    df['question_id'] = df['question_id'].astype(str)
+    # image_groups = df.groupby('image_id')
     # for imgid, frame in image_groups:
     #     print(frame.head())
-    caption_expansions_sentences = expansions_to_sentences(expansions, captions)
-    # pick_expansions_method1(caption_expansions_sentences, questions)
+    caption_expansions_sentences = expansions_to_sentences(caption_expansions, captions)
+    # question_sentences = dict(zip(df.question_id, df.question))
+    # question_expansions_sentences = expansions_to_sentences(question_expansions, question_sentences)
+    picked_expansions = pick_expansions_method1(caption_expansions_sentences, df)
+    print(picked_expansions[picked_expansions.keys()[0]])
 
-    keys = list(captions.keys())
-    for key in keys[30:40]:
-        print(captions[key])
+    # example_size = 10000
+    #
+    # #  questions expansions plot
+    # for index, row in df.sample(example_size, random_state=1).iterrows():
+    #     n_zeros = 12 - len(row['image_id'])
+    #     filename = 'COCO_train2014_' + n_zeros*'0' + row['image_id'] + '.jpg'
+    #     image_path = f'{images_path}/{filename}'
+    #     q_expanded = question_expansions_sentences[row['question_id']]
+    #     show_image(image_path, row["question"] + "?\n\n" + ". ".join(q_expanded))  # title=captions[key]
+    #
+    #     break
+
+    keys = caption_expansions.keys()
+    for key in keys[30:32]:
+        #print(captions[key])
         # print(expansions[key])
         # print(caption_expansions_sentences[key])
         image_path = f'{images_path}/{key}'
         image_id = key.replace('COCO_train2014_000000', "")
         image_id = image_id.replace('.jpg', "")
         df_image = df[df['image_id'] == image_id]
-        ques = "? ".join(df_image['question'].values)
-        text = " . ".join(caption_expansions_sentences[key])
-        show_image(image_path, ques + "\n\n" + text, title=captions[key])
+        for index, row in df_image.iterrows():
+            quest = row['question']
+            qid = row['question_id']
+            ques = "? ".join(df_image['question'].values)
+            text = " . ".join(picked_expansions[image_id][qid])
+            show_image(image_path, ques + "\n\n" + text) #title=captions[key]
 
-        print(df_image)
-        plt.show()
+

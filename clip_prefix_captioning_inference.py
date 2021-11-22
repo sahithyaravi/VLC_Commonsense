@@ -260,11 +260,13 @@ split = 'train'
 sample_size = 8000  # number of images to caption
 path_to_files = f'{split}2014'
 files = os.listdir(path_to_files)
-files = random.sample(files, sample_size)
+# files = random.sample(files, sample_size)
 
 # @title Inference
 inferences = {}
+ind = 0
 for filename in files:
+    ind += 1
     IMG_PATH = f'{path_to_files}/{filename}'
 
     use_beam_search = False  # @param {type:"boolean"}
@@ -288,7 +290,10 @@ for filename in files:
     print('\n')
     print(generated_text_prefix)
     inferences[filename] = generated_text_prefix
+    if ind % 1000 == 0:
+        with open(f'captions_train{ind}.json', 'w') as fp:
+            json.dump(inferences, fp)
 
-with open('caption_expansions.json', 'w') as fp:
+with open('captions_train.json', 'w') as fp:
     json.dump(inferences, fp)
 
