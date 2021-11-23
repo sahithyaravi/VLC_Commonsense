@@ -11,7 +11,8 @@ import torch
 
 
 def symmetric_search(queries, corpus, k=1):
-    embedder = SentenceTransformer('all-MiniLM-L6-v2')
+    pretrained = 'multi-qa-MiniLM-L6-cos-v1'
+    embedder = SentenceTransformer(pretrained)
 
     corpus_embeddings = embedder.encode(corpus, convert_to_tensor=True)
 
@@ -37,7 +38,7 @@ def symmetric_search(queries, corpus, k=1):
 
 
 def sentence_similarity(sentences1, sentences2):
-    model = SentenceTransformer('all-MiniLM-L6-v2')
+    model = SentenceTransformer('msmarco-distilroberta-base-v3')
 
     # Compute embedding for both lists
     embeddings1 = model.encode(sentences1, convert_to_tensor=True)

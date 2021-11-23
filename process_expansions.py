@@ -16,6 +16,12 @@ logger = logging.getLogger(__name__)
 nlp = spacy.load('en_core_web_sm')
 
 
+def imageid_to_path(image_id, split='train'):
+    n_zeros = 12 - len(image_id)
+    filename = f'COCO_{split}2014_' + n_zeros*'0' + image_id + '.jpg'
+    return filename
+
+
 def get_personx(input_event, use_chunk=True):
     """
     Returns the subject of a sentence
@@ -84,7 +90,11 @@ def expansions_to_sentences(expansions, sentences):
 
 def pick_expansions_method1(caption_expanded, questions_df):
     final_context = {}
+    i = 0
     for key, context in caption_expanded.items():
+        i += 1
+        if i == 10:
+            break
         img_id = key.replace('COCO_train2014_000000', "")
         img_id = img_id.replace('.jpg', "")
         df_img = questions_df[questions_df['image_id'] == img_id]
@@ -109,7 +119,6 @@ def show_image(image_path, text="", title=""):
     ax2.text(0.1, 0.1, text, wrap=True)
     img = mpimg.imread(image_path)
     imgplot = ax1.imshow(img)
-    plt.show()
 
 
 if __name__ == '__main__':
@@ -123,46 +132,38 @@ if __name__ == '__main__':
     with open(questions_comet_expansions_path, 'r') as fp:
         question_expansions = json.loads(fp.read())
 
-    # Get some sample images, expansions and questions and plot them
+    # Get questions as df
     df = pd.DataFrame(questions['questions'])
-
     df['image_id'] = df['image_id'].astype(str)
     df['question_id'] = df['question_id'].astype(str)
     # image_groups = df.groupby('image_id')
     # for imgid, frame in image_groups:
     #     print(frame.head())
+
+    # Expanded captions to sentences
     caption_expansions_sentences = expansions_to_sentences(caption_expansions, captions)
-    # question_sentences = dict(zip(df.question_id, df.question))
-    # question_expansions_sentences = expansions_to_sentences(question_expansions, question_sentences)
-    picked_expansions = pick_expansions_method1(caption_expansions_sentences, df)
-    print(picked_expansions[picked_expansions.keys()[0]])
+    if method == "SEMANTIC_SEARCH":
+        picked_expansions = pick_expansions_method1(caption_expansions_sentences, df)
+        print(picked_expansions.keys())
+    else:
+        question_sentences = dict(zip(df.question_id, df.question))
+        question_expansions_sentences = expansions_to_sentences(question_expansions, question_sentences)
 
-    # example_size = 10000
-    #
-    # #  questions expansions plot
-    # for index, row in df.sample(example_size, random_state=1).iterrows():
-    #     n_zeros = 12 - len(row['image_id'])
-    #     filename = 'COCO_train2014_' + n_zeros*'0' + row['image_id'] + '.jpg'
-    #     image_path = f'{images_path}/{filename}'
-    #     q_expanded = question_expansions_sentences[row['question_id']]
-    #     show_image(image_path, row["question"] + "?\n\n" + ". ".join(q_expanded))  # title=captions[key]
-    #
-    #     break
-
-    keys = caption_expansions.keys()
-    for key in keys[30:32]:
-        #print(captions[key])
-        # print(expansions[key])
-        # print(caption_expansions_sentences[key])
-        image_path = f'{images_path}/{key}'
-        image_id = key.replace('COCO_train2014_000000', "")
-        image_id = image_id.replace('.jpg', "")
-        df_image = df[df['image_id'] == image_id]
+    # Plot final output samples
+    keys = list(picked_expansions.keys())[:4]
+    for key in keys:
+        filename = imageid_to_path(key)
+        image_path = f'{images_path}/{filename}'
+        # image_id = key.replace('COCO_train2014_000000', "")
+        # image_id = image_id.replace('.jpg', "")
+        df_image = df[df['image_id'] == key]
+        texts = []
         for index, row in df_image.iterrows():
             quest = row['question']
             qid = row['question_id']
-            ques = "? ".join(df_image['question'].values)
-            text = " . ".join(picked_expansions[image_id][qid])
-            show_image(image_path, ques + "\n\n" + text) #title=captions[key]
+            text = picked_expansions[key][qid]
+            texts.append(quest+"?\n"+text)
+        show_image(image_path, "\n\n".join(texts), title=captions[f'COCO_train2014_000000{key}.jpg'])
+        plt.show()
 
 
