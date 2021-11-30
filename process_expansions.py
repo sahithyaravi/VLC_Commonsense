@@ -17,10 +17,7 @@ logger = logging.getLogger(__name__)
 nlp = spacy.load('en_core_web_sm')
 
 
-def imageid_to_path(image_id, split='train'):
-    n_zeros = 12 - len(image_id)
-    filename = f'COCO_{split}2014_' + n_zeros*'0' + image_id + '.jpg'
-    return filename
+
 
 
 def get_personx(input_event, use_chunk=True):

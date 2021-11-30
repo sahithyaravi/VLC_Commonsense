@@ -22,5 +22,17 @@ For each question perform semantic search to find e1...ek
 """
 method = 'SEMANTIC_SEARCH_QN'  # [SEMANTIC_SEARCH, SEMANTIC_SEARCH_QN, SIMILARITY]
 
-path_caption_expansions = 'caption_expansion_sentences_train.json'
-path_question_expansions = 'question_expansion_sentences_train.json'
+path_caption_expansions = 'outputs/caption_expansion_sentences_train.json'
+path_question_expansions = 'outputs/question_expansion_sentences_train.json'
+
+
+def imageid_to_path(image_id, split='train'):
+    n_zeros = 12 - len(image_id)
+    filename = f'COCO_{split}2014_' + n_zeros*'0' + image_id + '.jpg'
+    return filename
+
+
+def image_path_to_id(image_fullname, split='train'):
+    img_id = image_fullname.replace('COCO_train2014_000000', "")
+    img_id = img_id.replace('.jpg', "")
+    return str(int(img_id))
