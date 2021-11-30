@@ -9,11 +9,11 @@ This script outputs for various queries the top 5 most similar sentences in the 
 from sentence_transformers import SentenceTransformer, util
 import torch
 
+pretrained = 'msmarco-roberta-base-v3' #'multi-qa-MiniLM-L6-cos-v1' #'all-MiniLM-L6-v2' # msmarco-MiniLM-L-6-v3
+embedder = SentenceTransformer(pretrained)
+
 
 def symmetric_search(queries, corpus, k=1):
-    pretrained = 'multi-qa-MiniLM-L6-cos-v1'
-    embedder = SentenceTransformer(pretrained)
-
     corpus_embeddings = embedder.encode(corpus, convert_to_tensor=True)
 
     # Find the closest 5 sentences of the corpus for each query sentence based on cosine similarity
@@ -23,22 +23,23 @@ def symmetric_search(queries, corpus, k=1):
         query_embedding = embedder.encode(query, convert_to_tensor=True)
 
         # We use cosine-similarity and torch.topk to find the highest 5 scores
-        cos_scores = util.pytorch_cos_sim(query_embedding, corpus_embeddings)[0]
-        top_results = torch.topk(cos_scores, k=top_k)
+        #cos_scores = util.pytorch_cos_sim(query_embedding, corpus_embeddings)[0]
+        dot_scores = util.dot_score(query_embedding, corpus_embeddings)[0].cpu()
+        top_results = torch.topk(dot_scores, k=top_k)
 
-        print("\n\n======================\n\n")
-        print("Query:", query)
-        print(f"\nTop {k} most similar sentences in corpus:")
+        # print("\n\n======================\n\n")
+        # print("Query:", query)
+        # print(f"\nTop {k} most similar sentences in corpus:")
         sent = ""
         for score, idx in zip(top_results[0], top_results[1]):
-            print(corpus[idx], "(Score: {:.4f})".format(score))
+            #print(corpus[idx], "(Score: {:.4f})".format(score))
             sent += corpus[idx] + "."
         result.append(sent)
     return result
 
 
 def sentence_similarity(sentences1, sentences2):
-    model = SentenceTransformer('msmarco-distilroberta-base-v3')
+    model = embedder
 
     # Compute embedding for both lists
     embeddings1 = model.encode(sentences1, convert_to_tensor=True)
@@ -49,6 +50,8 @@ def sentence_similarity(sentences1, sentences2):
 
     # Find the pairs with the highest cosine similarity scores
     pairs = []
+    print(len(sentences1), len(sentences2))
+    print(cosine_scores)
     for i in range(len(cosine_scores)):
         for j in range(len(cosine_scores)):
             pairs.append({'index': [i, j], 'score': cosine_scores[i][j]})
@@ -90,4 +93,4 @@ if __name__ == '__main__':
                   'The new movie is so great']
 
     symmetric_search(queries, corpus)
-    sentence_similarity(sentences1, sentences2)
+    #sentence_similarity(sentences1, sentences2)
