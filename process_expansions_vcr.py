@@ -58,7 +58,7 @@ def expansions_to_sentences(expansions, sentences):
     all_contexts = {}
     relation_map = {"AtLocation": "is located at",
                     "CapableOf": "is capable of",
-                    "Causes": "causes",
+                    # "Causes": "causes",
                     "HasProperty": "has property",
                     "MadeOf": "is made of",
                     "NotCapableOf": "is not capable of",
@@ -91,21 +91,34 @@ def pick_expansions_method1(caption_expanded, questions_df):
     i = 0
     for key, context in caption_expanded.items():
         i += 1
-        if i == 10:
+        if i == 15:
             break
-        img_id = key.replace('COCO_train2014_000000', "")
-        img_id = img_id.replace('.jpg', "")
-        df_img = questions_df[questions_df['image_id'] == img_id]
-        queries = list(df_img['question'].values)
+        if dataset == "vqa":
+            img_id = key.replace('COCO_train2014_000000', "")
+            img_id = img_id.replace('.jpg', "")
+            df_img = questions_df[questions_df['image_id'] == img_id]
+            qids = df_img['question_id'].values
+            queries = list(df_img['question'].values)
+        else:
+            df_img = questions_df[questions_df["img_fn"]==key]
+            img_id = str(key)
+
+            qids = df_img['question_number'].astype(str).values
+            queries = list(df_img['question_orig'].values)
+
+
         if queries and context:
             # print(queries)
             # print(context)
             picked_context = symmetric_search(queries, context, k=3)
-            image_dict = dict(zip(df_img['question_id'].values, picked_context))
+            image_dict = dict(zip(qids, picked_context))
             final_context[img_id] = image_dict
+
+
         if i % 1000 == 0:
             with open(f'picked{method}_train{i}.json', 'w') as fpp:
                 json.dump(final_context, fpp)
+    # print(final_context)
     return final_context
 
 
@@ -181,8 +194,8 @@ if __name__ == '__main__':
         captions = json.loads(fp.read())
     with open(captions_comet_expansions_path, 'r') as fp:
         caption_expansions = json.loads(fp.read())
-    with open(questions_comet_expansions_path, 'r') as fp:
-        question_expansions = json.loads(fp.read())
+    # with open(questions_comet_expansions_path, 'r') as fp:
+    #     question_expansions = json.loads(fp.read())
     if dataset == "vqa":
         with open(questions_path, 'r') as fp:
             questions = json.loads(fp.read())
@@ -193,6 +206,16 @@ if __name__ == '__main__':
         image_groups = df.groupby('image_id')
         for imgid, frame in image_groups:
             print(frame.head())
+    else:
+        data = []
+        with open(questions_path, 'r') as fp:
+            for line in fp:
+                data.append(json.loads(line))
+
+        df = pd.DataFrame(data)
+        print(df.head())
+        print(df.columns)
+        images = list(df['img_fn'].values)
 
 
     # Expanded captions to sentences
@@ -224,25 +247,33 @@ if __name__ == '__main__':
         elif method == "SIMILARITY":
             picked_expansions = pick_expansions_method2(question_expansions_sentences, caption_expansions_sentences, df)
 
-    with open(f'picked_expansions_{method}_train.json', 'w') as fpp:
+    with open(f'picked_expansions_{method}_train{dataset}.json', 'w') as fpp:
         json.dump(picked_expansions, fpp)
 
     # Plot final output samples
     keys = list(picked_expansions.keys())
+    print(keys)
     for key in keys:
         filename = imageid_to_path(key)
+        if dataset == "vcr":
+            filename = key
         image_path = f'{images_path}/{filename}'
         # image_id = key.replace('COCO_train2014_000000', "")
         # image_id = image_id.replace('.jpg', "")
-        df_image = df[df['image_id'] == key]
+        if dataset == "vqa":
+            df_image = df[df['image_id'] == key]
+            image_name = f'COCO_train2014_000000{key}.jpg'
+        else:
+            df_image = df[df["img_fn"] == key]
+            image_name = key
         texts = []
         for index, row in df_image.iterrows():
-            quest = row['question']
-            qid = row['question_id']
+            quest = row['question'] if dataset =="vqa" else row["question_orig"]
+            qid = str(row['question_id'] if dataset =="vqa" else row["question_number"])
             text = "".join(picked_expansions[key][qid])
             texts.append(quest+"?\n"+text)
         #texts.extend(caption_expansions_sentences[filename])
-        show_image(image_path, "\n".join(texts), title=captions[f'COCO_train2014_000000{key}.jpg'])
+        show_image(image_path, "\n".join(texts), title=captions[image_name])
         plt.show()
     #
 
