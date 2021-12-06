@@ -9,11 +9,11 @@ This script outputs for various queries the top 5 most similar sentences in the 
 from sentence_transformers import SentenceTransformer, util
 import torch
 
-pretrained = "multi-qa-MiniLM-L6-cos-v1" #'msmarco-roberta-base-v3'multi-qa-MiniLM-L6-cos-v1' #'all-MiniLM-L6-v2' # msmarco-MiniLM-L-6-v3
+pretrained = "msmarco-distilbert-base-v4" #'msmarco-roberta-base-v3'multi-qa-MiniLM-L6-cos-v1' #'all-MiniLM-L6-v2' # msmarco-MiniLM-L-6-v3
 embedder = SentenceTransformer(pretrained)
 
 
-def symmetric_search(queries, corpus, k=3):
+def symmetric_search(queries, corpus, k=3, threshold=0.1):
     corpus_embeddings = embedder.encode(corpus, convert_to_tensor=True)
 
     # Find the closest 5 sentences of the corpus for each query sentence based on cosine similarity
@@ -34,7 +34,8 @@ def symmetric_search(queries, corpus, k=3):
         for score, idx in zip(top_results[0], top_results[1]):
             #print(corpus[idx], "(Score: {:.4f})".format(score))
             sent += corpus[idx] + "."
-        result.append(sent)
+            if score > threshold:
+                result.append(sent)
     return result
 
 

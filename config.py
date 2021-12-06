@@ -14,30 +14,30 @@ For each question perform semantic search to find e1...ek
 
 """
 
-# # VQA
-# dataset = 'vqa'
-# images_path = 'data/vqa/train2014'
-# questions_path = 'data/vqa/v2_OpenEnded_mscoco_train2014_questions.json'
-# captions_path = 'data/vqa/expansion/captions_train.json'
-# captions_comet_expansions_path = 'data/vqa/expansion/caption_comet_expansions_train.json'
-# questions_comet_expansions_path = 'data/vqa/expansion/question_comet_expansions_175000.json'
-#
-# save_sentences_caption_expansions = 'outputs/caption_expansion_sentences_train.json'
-# save_sentences_question_expansions = 'outputs/question_expansion_sentences_train.json'
-# method = 'SEMANTIC_SEARCH'  # [SEMANTIC_SEARCH, SEMANTIC_SEARCH_QN, SIMILARITY]
+# VQA
+dataset = 'vqa'
+images_path = 'data/vqa/train2014'
+questions_path = 'data/vqa/v2_OpenEnded_mscoco_train2014_questions.json'
+captions_path = 'data/vqa/expansion/captions_train.json'
+captions_comet_expansions_path = 'data/vqa/expansion/caption_comet_expansions_train_vqa.json'
+questions_comet_expansions_path = 'data/vqa/expansion/question_comet_expansions_vqa_175000.json'
 
-# VCR
-dataset = 'vcr'
-images_path = 'data/vcr/vcr1images'
-questions_path = 'data/vcr/vcr1annots/train.jsonl'
-captions_path = 'data/vcr/expansion/captions_train_vcr.json'
-captions_comet_expansions_path = 'data/vcr/expansion/caption_comet_expansions_train_vcr.json'
-questions_comet_expansions_path = 'data/vcr/expansion/question_comet_expansions_train_vcr.json'
-
-save_sentences_caption_expansions = 'outputs/caption_expansion_sentences_train_vcr.json'
-save_sentences_question_expansions = 'outputs/question_expansion_sentences_train_vcr.json'
+save_sentences_caption_expansions = 'outputs/caption_expansion_sentences_train.json'
+save_sentences_question_expansions = 'outputs/question_expansion_sentences_train.json'
 method = 'SEMANTIC_SEARCH'  # [SEMANTIC_SEARCH, SEMANTIC_SEARCH_QN, SIMILARITY]
 
+# for VCR these are the paths
+# dataset = 'vcr'
+# images_path = 'data/vcr/vcr1images'
+# questions_path = 'data/vcr/vcr1annots/train.jsonl'
+# captions_path = 'data/vcr/expansion/captions_train_vcr.json'
+# captions_comet_expansions_path = 'data/vcr/expansion/caption_comet_expansions_train_vcr.json'
+# questions_comet_expansions_path = 'data/vcr/expansion/question_comet_expansions_train_vcr.json'
+#
+# save_sentences_caption_expansions = 'outputs/caption_expansion_sentences_train_vcr.json'
+# save_sentences_question_expansions = 'outputs/question_expansion_sentences_train_vcr.json'
+# method = 'SEMANTIC_SEARCH'  # [SEMANTIC_SEARCH, SEMANTIC_SEARCH_QN, SIMILARITY]
+#
 
 
 def imageid_to_path(image_id, split='train'):

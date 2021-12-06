@@ -110,7 +110,7 @@ def pick_expansions_method1(caption_expanded, questions_df):
         if queries and context:
             # print(queries)
             # print(context)
-            picked_context = symmetric_search(queries, context, k=3)
+            picked_context = symmetric_search(queries, context, k=5)
             image_dict = dict(zip(qids, picked_context))
             final_context[img_id] = image_dict
 

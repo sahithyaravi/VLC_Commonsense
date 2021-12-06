@@ -4,6 +4,7 @@ import pandas as pd
 from PIL import Image
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
+from matplotlib import gridspec
 import spacy
 import textacy
 import logging
@@ -140,8 +141,8 @@ def pick_expansions_method3(qn_expansions_sentences, caption_expanded, questions
     i = 0
     for key, context in caption_expanded.items():
         i += 1
-        if i == 5:
-            break
+        # if i == 10:
+        #     break
         img_id = key.replace('COCO_train2014_000000', "")
         img_id = img_id.replace('.jpg', "")
         df_img = questions_df[questions_df['image_id'] == img_id]
@@ -150,10 +151,10 @@ def pick_expansions_method3(qn_expansions_sentences, caption_expanded, questions
         #print(qids)
         image_dict = {}
         for qn, idx in zip(queries, qids):
-            if idx in qn_expansions_sentences:
-                context.extend(qn_expansions_sentences[idx])
-            picked_context = symmetric_search([qn], context, k=3)
-            image_dict[idx] = picked_context
+            if idx in question_expansions_sentences:
+                picked_context1 = symmetric_search([qn], qn_expansions_sentences[idx], k=2)
+            picked_context2 = symmetric_search([qn], context, k=2)
+            image_dict[idx] = picked_context1 + picked_context2
         final_context[img_id] = image_dict
         if i % 1000 == 0:
             with open(f'picked{method}_train{i}.json', 'w') as fpp:
@@ -162,9 +163,12 @@ def pick_expansions_method3(qn_expansions_sentences, caption_expanded, questions
 
 
 def show_image(image_path, text="", title=""):
-    fig, (ax1, ax2) = plt.subplots(1, 2)
+    fig = plt.figure ()
+    gs = gridspec.GridSpec(1, 2, width_ratios=[1,2])
+    ax1 = plt.subplot(gs[0])
+    ax2 = plt.subplot(gs[1])
     fig.suptitle(title)
-    # plt.rcParams["figure.figsize"] = (15, 15)
+    # plt.rcParams["figure.figsize"] = (25, 20)
     plt.rcParams.update({'font.size': 8})
     plt.xticks([])
     plt.yticks([])
@@ -224,7 +228,7 @@ if __name__ == '__main__':
         elif method == "SIMILARITY":
             picked_expansions = pick_expansions_method2(question_expansions_sentences, caption_expansions_sentences, df)
 
-    with open(f'picked_expansions_{method}_train.json', 'w') as fpp:
+    with open(f'outputs/picked_expansions_{method}_{dataset}_train.json', 'w') as fpp:
         json.dump(picked_expansions, fpp)
 
     # Plot final output samples
@@ -242,7 +246,7 @@ if __name__ == '__main__':
             text = "".join(picked_expansions[key][qid])
             texts.append(quest+"?\n"+text)
         #texts.extend(caption_expansions_sentences[filename])
-        show_image(image_path, "\n".join(texts), title=captions[f'COCO_train2014_000000{key}.jpg'])
+        show_image(image_path, "\n\n".join(texts), title=captions[f'COCO_train2014_000000{key}.jpg'])
         plt.show()
     #
 

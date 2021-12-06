@@ -9,10 +9,11 @@ import sys
 from typing import Tuple, List, Union, Optional
 from transformers import GPT2Tokenizer, GPT2LMHeadModel, AdamW, get_linear_schedule_with_warmup
 from tqdm import tqdm, trange
-#from google.colab import files
+# from google.colab import files
 import skimage.io as io
 import PIL.Image
 import random
+import pandas as pd
 
 # Converted notebook from clip_prefix_captioning_inference.ipynb
 # (either use the ipynb to run on colab or use this file to run on CC using caption_inference.sh
@@ -255,45 +256,64 @@ model.load_state_dict(torch.load(model_path, map_location=CPU))
 model = model.eval()
 device = CUDA(0) if is_gpu else "cpu"
 model = model.to(device)
+dataset = "vcr"  # ["vqa", "vcr"]
+split = 'val'
 
-split = 'train'
-sample_size = 8000  # number of images to caption
-path_to_files = f'{split}2014'
-files = os.listdir(path_to_files)
-# files = random.sample(files, sample_size)
+if dataset == "vqa":
 
-# @title Inference
-inferences = {}
-ind = 0
-for filename in files:
-    ind += 1
-    IMG_PATH = f'{path_to_files}/{filename}'
+    sample_size = 8000  # number of images to caption
+    path_to_files = f'{split}2014'
+    files = os.listdir(path_to_files)
+    # files = random.sample(files, sample_size)
 
-    use_beam_search = False  # @param {type:"boolean"}
 
-    image = io.imread(IMG_PATH)
-    pil_image = PIL.Image.fromarray(image)
-    # pil_img = Image(filename=UPLOADED_FILE)
+else:
 
-    image = preprocess(pil_image).unsqueeze(0).to(device)
-    with torch.no_grad():
-        # if type(model) is ClipCaptionE2E:
-        #     prefix_embed = model.forward_image(image)
-        # else:
-        prefix = clip_model.encode_image(image).to(device, dtype=torch.float32)
-        prefix_embed = model.clip_project(prefix).reshape(1, prefix_length, -1)
-    if use_beam_search:
-        generated_text_prefix = generate_beam(model, tokenizer, embed=prefix_embed)[0]
-    else:
-        generated_text_prefix = generate2(model, tokenizer, embed=prefix_embed)
+    path_to_files = '/home/sahiravi/scratch/vcr1images'
+    path_to_annotations = '/home/sahiravi/scratch/'
+    data = []
+    with open(path_to_annotations + f'{split}.jsonl', 'r') as fp:
+        for line in fp:
+            data.append(json.loads(line))
 
-    print('\n')
-    print(generated_text_prefix)
-    inferences[filename] = generated_text_prefix
-    if ind % 1000 == 0:
-        with open(f'captions_train{ind}.json', 'w') as fp:
-            json.dump(inferences, fp)
+    df = pd.DataFrame(data)
+    print(df.head())
+    files = list(df['img_fn'].values)
 
-with open('captions_train.json', 'w') as fp:
-    json.dump(inferences, fp)
+
+if __name__ == '__main__':
+    # @title Inference
+    inferences = {}
+    ind = 0
+    for filename in files:
+        ind += 1
+        IMG_PATH = f'{path_to_files}/{filename}'
+
+        use_beam_search = False  # @param {type:"boolean"}
+
+        image = io.imread(IMG_PATH)
+        pil_image = PIL.Image.fromarray(image)
+        # pil_img = Image(filename=UPLOADED_FILE)
+
+        image = preprocess(pil_image).unsqueeze(0).to(device)
+        with torch.no_grad():
+            # if type(model) is ClipCaptionE2E:
+            #     prefix_embed = model.forward_image(image)
+            # else:
+            prefix = clip_model.encode_image(image).to(device, dtype=torch.float32)
+            prefix_embed = model.clip_project(prefix).reshape(1, prefix_length, -1)
+        if use_beam_search:
+            generated_text_prefix = generate_beam(model, tokenizer, embed=prefix_embed)[0]
+        else:
+            generated_text_prefix = generate2(model, tokenizer, embed=prefix_embed)
+
+        print('\n')
+        print(generated_text_prefix)
+        inferences[filename] = generated_text_prefix
+        if ind % 1000 == 0:
+            with open(f'captions_{split}_{ind}.json', 'w') as fp:
+                json.dump(inferences, fp)
+
+    with open(f'captions_{split}_{dataset}.json', 'w') as fp:
+        json.dump(inferences, fp)
 
