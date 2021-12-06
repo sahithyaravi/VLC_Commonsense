@@ -98,7 +98,7 @@ def pick_expansions_method1(caption_expanded, questions_df):
         df_img = questions_df[questions_df['image_id'] == img_id]
         queries = list(df_img['question'].values)
         if queries and context:
-            picked_context = symmetric_search(queries, context, k=3)
+            picked_context = symmetric_search(queries, context, k=5)
             image_dict = dict(zip(df_img['question_id'].values, picked_context))
             final_context[img_id] = image_dict
         if i % 1000 == 0:
@@ -139,8 +139,8 @@ def pick_expansions_method3(qn_expansions_sentences, caption_expanded, questions
     i = 0
     for key, context in caption_expanded.items():
         i += 1
-        # if i == 10:
-        #     break
+        if i == 10:
+            break
         img_id = image_path_to_id(key)
         df_img = questions_df[questions_df['image_id'] == img_id]
         queries = list(df_img['question'].values)

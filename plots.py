@@ -59,7 +59,7 @@ def expansion_to_graphnodes(expansions_dict, sentence):
     print(expansions_dict)
     for relation, exp_list in expansions_dict.items():
         for i in range(len(exp_list[:1])):
-            if relation not in ["NotMadeOf", "NotCapableOf", "NotDesires", "NotHasProperty"]:
+            if relation not in [" NotMadeOf", " NotCapableOf", " NotDesires", " NotHasProperty"]:
                 sources.append(sentence)
                 targets.append(exp_list[i])
                 relations.append(relation)
