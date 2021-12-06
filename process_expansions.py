@@ -94,45 +94,43 @@ def pick_expansions_method1(caption_expanded, questions_df):
         i += 1
         if i == 10:
             break
-        img_id = key.replace('COCO_train2014_000000', "")
-        img_id = img_id.replace('.jpg', "")
+        img_id = image_path_to_id(key)
         df_img = questions_df[questions_df['image_id'] == img_id]
         queries = list(df_img['question'].values)
         if queries and context:
-            # print(queries)
-            # print(context)
             picked_context = symmetric_search(queries, context, k=3)
             image_dict = dict(zip(df_img['question_id'].values, picked_context))
             final_context[img_id] = image_dict
         if i % 1000 == 0:
+            # save after 1K steps
             with open(f'picked{method}_train{i}.json', 'w') as fpp:
                 json.dump(final_context, fpp)
     return final_context
 
 
-def pick_expansions_method2(question_expansions_sentences, caption_expanded, questions_df):
-    final_context = {}
-    i = 0
-    for key, context in caption_expanded.items():
-        i += 1
-        if i == 10:
-            break
-        img_id = key.replace('COCO_train2014_000000', "")
-        img_id = img_id.replace('.jpg', "")
-        df_img = questions_df[questions_df['image_id'] == img_id]
-        queries = list(df_img['question'].values)
-        qids = list(df_img['question_id'].values)
-        image_dict = {}
-        for idx in qids:
-            if idx in question_expansions_sentences:
-                sentb = question_expansions_sentences[idx]
-                picked_context = sentence_similarity(sentb, context)
-                image_dict[idx] = picked_context
-        final_context[img_id] = image_dict
-        if i % 1000 == 0:
-            with open(f'picked{method}_train{i}.json', 'w') as fpp:
-                json.dump(final_context, fpp)
-    return final_context
+# def pick_expansions_method2(question_expansions_sentences, caption_expanded, questions_df):
+#     final_context = {}
+#     i = 0
+#     for key, context in caption_expanded.items():
+#         i += 1
+#         if i == 10:
+#             break
+#         img_id = key.replace('COCO_train2014_000000', "")
+#         img_id = img_id.replace('.jpg', "")
+#         df_img = questions_df[questions_df['image_id'] == img_id]
+#         queries = list(df_img['question'].values)
+#         qids = list(df_img['question_id'].values)
+#         image_dict = {}
+#         for idx in qids:
+#             if idx in question_expansions_sentences:
+#                 sentb = question_expansions_sentences[idx]
+#                 picked_context = sentence_similarity(sentb, context)
+#                 image_dict[idx] = picked_context
+#         final_context[img_id] = image_dict
+#         if i % 1000 == 0:
+#             with open(f'picked{method}_train{i}.json', 'w') as fpp:
+#                 json.dump(final_context, fpp)
+#     return final_context
 
 
 def pick_expansions_method3(qn_expansions_sentences, caption_expanded, questions_df):
@@ -143,18 +141,17 @@ def pick_expansions_method3(qn_expansions_sentences, caption_expanded, questions
         i += 1
         # if i == 10:
         #     break
-        img_id = key.replace('COCO_train2014_000000', "")
-        img_id = img_id.replace('.jpg', "")
+        img_id = image_path_to_id(key)
         df_img = questions_df[questions_df['image_id'] == img_id]
         queries = list(df_img['question'].values)
         qids = list(df_img['question_id'].values)
-        #print(qids)
         image_dict = {}
+        picked_context1 = []
         for qn, idx in zip(queries, qids):
             if idx in question_expansions_sentences:
-                picked_context1 = symmetric_search([qn], qn_expansions_sentences[idx], k=2)
-            picked_context2 = symmetric_search([qn], context, k=2)
-            image_dict[idx] = picked_context1 + picked_context2
+                picked_context_qn = symmetric_search([qn], qn_expansions_sentences[idx], k=2, threshold=0.5)
+            picked_context_caption = symmetric_search([qn], context, k=2,threshold=0.5)
+            image_dict[idx] = picked_context_qn + picked_context_caption
         final_context[img_id] = image_dict
         if i % 1000 == 0:
             with open(f'picked{method}_train{i}.json', 'w') as fpp:
@@ -163,16 +160,19 @@ def pick_expansions_method3(qn_expansions_sentences, caption_expanded, questions
 
 
 def show_image(image_path, text="", title=""):
-    fig = plt.figure ()
-    gs = gridspec.GridSpec(1, 2, width_ratios=[1,2])
-    ax1 = plt.subplot(gs[0])
-    ax2 = plt.subplot(gs[1])
+    fig = plt.figure()
     fig.suptitle(title)
     # plt.rcParams["figure.figsize"] = (25, 20)
+
+    gs = gridspec.GridSpec(1, 2, width_ratios=[1, 2])
+    ax1 = plt.subplot(gs[0])
+    ax2 = plt.subplot(gs[1])
+
     plt.rcParams.update({'font.size': 8})
     plt.xticks([])
     plt.yticks([])
     plt.box(False)
+
     ax2.text(0.1, 0.1, text, wrap=True)
     img = mpimg.imread(image_path)
     imgplot = ax1.imshow(img)
@@ -198,7 +198,6 @@ if __name__ == '__main__':
         for imgid, frame in image_groups:
             print(frame.head())
 
-
     # Expanded captions to sentences
     if os.path.exists(save_sentences_caption_expansions):
         with open(f'{save_sentences_caption_expansions}', 'r') as fpp:
@@ -209,10 +208,14 @@ if __name__ == '__main__':
         with open(f'{save_sentences_caption_expansions}', 'w') as fpp:
             json.dump(caption_expansions_sentences, fpp)
 
+    # Pick final context using chosen method
     if method == "SEMANTIC_SEARCH":
+        # This method only uses captions and picks a relevant caption expansion based on qn
         picked_expansions = pick_expansions_method1(caption_expansions_sentences, df)
 
     else:
+        # These two methods use both qn and caption expansions
+        # Expand question expansions to sentences
         if os.path.exists(save_sentences_question_expansions):
             with open(f'{save_sentences_question_expansions}', 'r') as fpp:
                 question_expansions_sentences = json.loads(fpp.read())
@@ -221,33 +224,30 @@ if __name__ == '__main__':
             question_expansions_sentences = expansions_to_sentences(question_expansions, question_sentences)
             with open(f'{save_sentences_question_expansions}', 'w') as fpp:
                 json.dump(question_expansions_sentences, fpp)
-        # df = df.loc[df['question_id'].isin(list(question_expansions_sentences.keys()))]
-        # print(df.head())
+
         if method == "SEMANTIC_SEARCH_QN":
             picked_expansions = pick_expansions_method3(question_expansions_sentences, caption_expansions_sentences, df)
         elif method == "SIMILARITY":
-            picked_expansions = pick_expansions_method2(question_expansions_sentences, caption_expansions_sentences, df)
+            print(" This method is not implemented yet!!!!!!!!!!!!!!!!")
+            # picked_expansions = pick_expansions_method2(question_expansions_sentences,
+            # caption_expansions_sentences, df)
 
     with open(f'outputs/picked_expansions_{method}_{dataset}_train.json', 'w') as fpp:
         json.dump(picked_expansions, fpp)
 
-    # Plot final output samples
-    keys = list(picked_expansions.keys())
+    # Plot first 5 final context + image samples
+    keys = list(picked_expansions.keys())[:5]
     for key in keys:
         filename = imageid_to_path(key)
         image_path = f'{images_path}/{filename}'
-        # image_id = key.replace('COCO_train2014_000000', "")
-        # image_id = image_id.replace('.jpg', "")
         df_image = df[df['image_id'] == key]
         texts = []
         for index, row in df_image.iterrows():
             quest = row['question']
             qid = row['question_id']
             text = "".join(picked_expansions[key][qid])
-            texts.append(quest+"?\n"+text)
-        #texts.extend(caption_expansions_sentences[filename])
+            texts.append(quest + "?\n" + text)
+        # texts.extend(caption_expansions_sentences[filename])
         show_image(image_path, "\n\n".join(texts), title=captions[f'COCO_train2014_000000{key}.jpg'])
         plt.show()
     #
-
-

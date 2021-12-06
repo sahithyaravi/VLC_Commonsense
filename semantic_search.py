@@ -13,7 +13,7 @@ pretrained = "msmarco-distilbert-base-v4" #'msmarco-roberta-base-v3'multi-qa-Min
 embedder = SentenceTransformer(pretrained)
 
 
-def symmetric_search(queries, corpus, k=3, threshold=0.1):
+def symmetric_search(queries, corpus, k=3, threshold=0):
     corpus_embeddings = embedder.encode(corpus, convert_to_tensor=True)
 
     # Find the closest 5 sentences of the corpus for each query sentence based on cosine similarity

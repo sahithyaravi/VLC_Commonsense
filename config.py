@@ -18,7 +18,7 @@ For each question perform semantic search to find e1...ek
 dataset = 'vqa'
 images_path = 'data/vqa/train2014'
 questions_path = 'data/vqa/v2_OpenEnded_mscoco_train2014_questions.json'
-captions_path = 'data/vqa/expansion/captions_train.json'
+captions_path = 'data/vqa/expansion/captions_train_vqa.json'
 captions_comet_expansions_path = 'data/vqa/expansion/caption_comet_expansions_train_vqa.json'
 questions_comet_expansions_path = 'data/vqa/expansion/question_comet_expansions_vqa_175000.json'
 
