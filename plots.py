@@ -59,7 +59,7 @@ def expansion_to_graphnodes(expansions_dict, sentence):
     print(expansions_dict)
     for relation, exp_list in expansions_dict.items():
         for i in range(len(exp_list[:1])):
-            if relation not in [" NotMadeOf", " NotCapableOf", " NotDesires", " NotHasProperty"]:
+            if relation not in ["NotMadeOf", "NotCapableOf", "NotDesires", "NotHasProperty"]:
                 sources.append(sentence)
                 targets.append(exp_list[i])
                 relations.append(relation)
@@ -94,7 +94,7 @@ if __name__ == '__main__':
     df = pd.DataFrame(questions['questions'])
     df['image_id'] = df['image_id'].astype(str)
     df['question_id'] = df['question_id'].astype(str)
-    valid_image_ids = df['image_id'].values[100:150]
+    valid_image_ids = df['image_id'].values[4000:]
 
     captions_keys = list(captions.keys())
     caption_expansion_keys = list(caption_expansions.keys())
@@ -106,13 +106,14 @@ if __name__ == '__main__':
 
         show_image(images_path + '/' + image_name)
         plt.savefig(f'plots/{image_id}.png')
-        graph = expansion_to_graphnodes(caption_expansions[image_name], captions[image_name])
-        draw_graph(graph, filename=f'plots/caption{image_id}.png')
-        for idx, row in df_img.iterrows():
-            question = row['question']
-            print(question)
-            qn_exp = question_expansions[row['question_id']]
-            qn_graph = expansion_to_graphnodes(qn_exp, question)
-            draw_graph(qn_graph, filename=f"plots/{image_id}{idx}.jpg")
+        if image_name in caption_expansions:
+            graph = expansion_to_graphnodes(caption_expansions[image_name], captions[image_name])
+            draw_graph(graph, filename=f'plots/caption{image_id}.png')
+            for idx, row in df_img.iterrows():
+                question = row['question']
+                print(question)
+                qn_exp = question_expansions[row['question_id']]
+                qn_graph = expansion_to_graphnodes(qn_exp, question)
+                draw_graph(qn_graph, filename=f"plots/{image_id}{idx}.jpg")
 
 

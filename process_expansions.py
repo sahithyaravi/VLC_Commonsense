@@ -18,9 +18,6 @@ logger = logging.getLogger(__name__)
 nlp = spacy.load('en_core_web_sm')
 
 
-
-
-
 def get_personx(input_event, use_chunk=True):
     """
     Returns the subject of a sentence
@@ -45,9 +42,9 @@ def get_personx(input_event, use_chunk=True):
                 f'No subject was found for the following sentence: "{input_event}". Skipping this sentence')
             return "", False
     else:
-        print(svos)
+        # print(svos)
         subj_head = svos[0][0]
-        print(subj_head)
+        # print(subj_head)
         # is_named_entity = subj_head.root.pos_ == "PROP"
         personx = subj_head[
             0].text  # " ".join([t.text for t in list(subj_head.lefts) + [subj_head] + list(subj_head.rights)])
@@ -92,13 +89,13 @@ def pick_expansions_method1(caption_expanded, questions_df):
     i = 0
     for key, context in caption_expanded.items():
         i += 1
-        if i == 10:
+        if i == 40:
             break
         img_id = image_path_to_id(key)
         df_img = questions_df[questions_df['image_id'] == img_id]
         queries = list(df_img['question'].values)
         if queries and context:
-            picked_context = symmetric_search(queries, context, k=5)
+            picked_context = symmetric_search(queries, context, k=5, threshold=0.2)
             image_dict = dict(zip(df_img['question_id'].values, picked_context))
             final_context[img_id] = image_dict
         if i % 1000 == 0:
@@ -135,7 +132,7 @@ def pick_expansions_method1(caption_expanded, questions_df):
 
 def pick_expansions_method3(qn_expansions_sentences, caption_expanded, questions_df):
     final_context = {}
-    print(qn_expansions_sentences.keys())
+    # print(qn_expansions_sentences.keys())
     i = 0
     for key, context in caption_expanded.items():
         i += 1
@@ -195,8 +192,8 @@ if __name__ == '__main__':
         df['image_id'] = df['image_id'].astype(str)
         df['question_id'] = df['question_id'].astype(str)
         image_groups = df.groupby('image_id')
-        for imgid, frame in image_groups:
-            print(frame.head())
+        # for imgid, frame in image_groups:
+        #     print(frame.head())
 
     # Expanded captions to sentences
     if os.path.exists(save_sentences_caption_expansions):
