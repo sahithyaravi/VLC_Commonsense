@@ -9,8 +9,17 @@ This script outputs for various queries the top 5 most similar sentences in the 
 from sentence_transformers import SentenceTransformer, util
 import torch
 
-pretrained = "msmarco-distilbert-base-v4" #'msmarco-roberta-base-v3'multi-qa-MiniLM-L6-cos-v1' #'all-MiniLM-L6-v2' # msmarco-MiniLM-L-6-v3
-embedder = SentenceTransformer(pretrained)
+if torch.cuda.is_available():
+    device = 'cuda'
+else:
+    device = 'cpu'
+# asymmetric
+pretrained = "msmarco-distilbert-base-v4"
+
+# symmetric
+# pretrained = "all-MiniLM-L6-v2"
+# "multi-qa-MiniLM-L6-cos-v1"
+embedder = SentenceTransformer(pretrained, device=device)
 
 
 def symmetric_search(queries, corpus, k=3, threshold=0):
@@ -20,12 +29,12 @@ def symmetric_search(queries, corpus, k=3, threshold=0):
     top_k = min(k, len(corpus))
     result = []
     for query in queries:
-        query_embedding = embedder.encode(query, convert_to_tensor=True)
+        query_embedding = embedder.encode(query, convert_to_tensor=True, batch_size=max(128, len(corpus)), device=device)
 
         # We use cosine-similarity and torch.topk to find the highest 5 scores
-        #cos_scores = util.pytorch_cos_sim(query_embedding, corpus_embeddings)[0]
-        dot_scores = util.dot_score(query_embedding, corpus_embeddings)[0].cpu()
-        top_results = torch.topk(dot_scores, k=top_k)
+        cos_scores = util.pytorch_cos_sim(query_embedding, corpus_embeddings)[0]
+        # dot_scores = util.dot_score(query_embedding, corpus_embeddings)[0].cpu()
+        top_results = torch.topk(cos_scores, k=top_k)
 
         # print("\n\n======================\n\n")
         # print("Query:", query)
@@ -33,8 +42,8 @@ def symmetric_search(queries, corpus, k=3, threshold=0):
         sent = ""
         for score, idx in zip(top_results[0], top_results[1]):
             #print(corpus[idx], "(Score: {:.4f})".format(score))
-            sent += corpus[idx] + "."
-            if score > threshold:
+            sent += " "+ corpus[idx]
+            if score > threshold and sent not in result:
                 result.append(sent)
     return result
 

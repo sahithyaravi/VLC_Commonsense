@@ -16,15 +16,17 @@ For each question perform semantic search to find e1...ek
 
 # VQA
 dataset = 'vqa'
-images_path = 'data/vqa/train2014'
-questions_path = 'data/vqa/v2_OpenEnded_mscoco_train2014_questions.json'
-captions_path = 'data/vqa/expansion/captions_train_vqa.json'
-captions_comet_expansions_path = 'data/vqa/expansion/caption_comet_expansions_train_vqa.json'
-questions_comet_expansions_path = 'data/vqa/expansion/question_comet_expansions_vqa_175000.json'
+split = 'val2014'
+images_path = f'data/vqa/{split}'
+questions_path = 'data/vqa/questions/v2_OpenEnded_mscoco_val2014_questions.json'
+captions_path = f'data/vqa/expansion/captions/captions_val_vqa.json'
+captions_comet_expansions_path = f'data/vqa/expansion/caption_expansions/caption_comet_expansions_val_vqa.json'
+questions_comet_expansions_path = f'data/vqa/expansion/question_expansions/question_comet_expansions_val_vqa.json'
 
-save_sentences_caption_expansions = 'outputs/caption_expansion_sentences_train.json'
-save_sentences_question_expansions = 'outputs/question_expansion_sentences_train.json'
-method = 'SEMANTIC_SEARCH'  # [SEMANTIC_SEARCH, SEMANTIC_SEARCH_QN, SIMILARITY]
+save_sentences_caption_expansions = f'data/vqa/expansion/caption_expansion_sentences_{split}_{dataset}.json'
+save_sentences_question_expansions = f'data/vqa/expansion/question_expansion_sentences_{split}_{dataset}.json'
+method = 'SEMANTIC_SEARCH_QN'  # [1- SEMANTIC_SEARCH, 2-SEMANTIC_SEARCH_QN]
+final_expansion_save_path = f'outputs/picked_expansions_{method}_{dataset}_{split}.json'
 
 # for VCR these are the paths
 # dataset = 'vcr'
@@ -36,17 +38,17 @@ method = 'SEMANTIC_SEARCH'  # [SEMANTIC_SEARCH, SEMANTIC_SEARCH_QN, SIMILARITY]
 #
 # save_sentences_caption_expansions = 'outputs/caption_expansion_sentences_train_vcr.json'
 # save_sentences_question_expansions = 'outputs/question_expansion_sentences_train_vcr.json'
-# method = 'SEMANTIC_SEARCH'  # [SEMANTIC_SEARCH, SEMANTIC_SEARCH_QN, SIMILARITY]
+# method = 'SEMANTIC_SEARCH'
 #
 
 
-def imageid_to_path(image_id, split='train'):
+def imageid_to_path(image_id):
     n_zeros = 12 - len(image_id)
-    filename = f'COCO_{split}2014_' + n_zeros*'0' + image_id + '.jpg'
+    filename = f'COCO_{split}_' + n_zeros*'0' + image_id + '.jpg'
     return filename
 
 
-def image_path_to_id(image_fullname, split='train'):
-    img_id = image_fullname.replace('COCO_train2014_000000', "")
+def image_path_to_id(image_fullname):
+    img_id = image_fullname.replace(f'COCO_{split}_00', "")
     img_id = img_id.replace('.jpg', "")
     return str(int(img_id))

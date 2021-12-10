@@ -54,34 +54,39 @@ def get_personx(input_event, use_chunk=True):
 
 def expansions_to_sentences(expansions, sentences):
     all_contexts = {}
-    relation_map = {"AtLocation": "is located at",
-                    "CapableOf": "is capable of",
-                    "Causes": "causes",
-                    "HasProperty": "has property",
-                    "MadeOf": "is made of",
-                    "NotCapableOf": "is not capable of",
-                    "NotDesires": "does not desire",
-                    "NotHasProperty": "does not have the property",
-                    "NotMadeOf": "is not made of",
-                    "RelatedTo": "is related to",
-                    "UsedFor": "is used for",
-                    "xAttr": "is seen as ",
-                    "xEffect": "sees the effect",
-                    "xIntent": "intends",
-                    "xNeed": "needed to",
-                    "xReact": "reacts",
-                    "xReason": "reasons",
-                    "xWant": "wants"}
+    all_top_contexts = {}
+    #  "oEffect"
+    relation_map = {
+        "AtLocation": "is located at",
+        "MadeUpOf": "is made of",
+        "UsedFor": "is used for",
+        "CapableOf": "is capable of",
+        "Desires": "desires",
+        "NotDesires": "does not desire",
+        "Causes": "causes",
+        "HasProperty": "is",
+        "xAttr": "is seen as",
+        "xEffect": "sees the effect",
+        "xIntent": "intends",
+        "xNeed": "needed to",
+        "xReact": "reacts",
+        "xReason": "reasons",
+        "xWant": "wants"}
     for key, exp in expansions.items():
         context = []
+        top_context = []
         personx, _ = get_personx(sentences[key])  # the sentence expanded by comet
         for relation, beams in exp.items():
             if relation in relation_map:
-                for beam in beams:
-                    if beam != " none":
-                        context.append(personx + " " + relation_map[relation] + " " + beam)
+                top_context.append(personx + " " + relation_map[relation] + beams[0] + ".")
+                for beam in beams[:2]:
+                    if beam != " none" and beam != "   ":
+                        sent = personx + " " + relation_map[relation] + beam + "."
+                        if sent not in context:
+                            context.append(sent)
         all_contexts[key] = context
-    return all_contexts
+        all_top_contexts[key] = top_context
+    return all_contexts, all_top_contexts
 
 
 def pick_expansions_method1(caption_expanded, questions_df):
@@ -96,6 +101,7 @@ def pick_expansions_method1(caption_expanded, questions_df):
         queries = list(df_img['question'].values)
         if queries and context:
             picked_context = symmetric_search(queries, context, k=5, threshold=0.2)
+            print(picked_context)
             image_dict = dict(zip(df_img['question_id'].values, picked_context))
             final_context[img_id] = image_dict
         if i % 1000 == 0:
@@ -130,14 +136,15 @@ def pick_expansions_method1(caption_expanded, questions_df):
 #     return final_context
 
 
+
 def pick_expansions_method3(qn_expansions_sentences, caption_expanded, questions_df):
     final_context = {}
     # print(qn_expansions_sentences.keys())
     i = 0
     for key, context in caption_expanded.items():
         i += 1
-        if i == 10:
-            break
+        # if i == 5:
+        #     break
         img_id = image_path_to_id(key)
         df_img = questions_df[questions_df['image_id'] == img_id]
         queries = list(df_img['question'].values)
@@ -147,11 +154,11 @@ def pick_expansions_method3(qn_expansions_sentences, caption_expanded, questions
         for qn, idx in zip(queries, qids):
             if idx in question_expansions_sentences:
                 picked_context_qn = symmetric_search([qn], qn_expansions_sentences[idx], k=2, threshold=0.5)
-            picked_context_caption = symmetric_search([qn], context, k=2,threshold=0.5)
+            picked_context_caption = symmetric_search([qn], context, k=3, threshold=0.3)
             image_dict[idx] = picked_context_qn + picked_context_caption
         final_context[img_id] = image_dict
-        if i % 1000 == 0:
-            with open(f'picked{method}_train{i}.json', 'w') as fpp:
+        if i % 10000 == 0:
+            with open(f'picked{method}_{split}{i}.json', 'w') as fpp:
                 json.dump(final_context, fpp)
     return final_context
 
@@ -189,9 +196,10 @@ if __name__ == '__main__':
             questions = json.loads(fp.read())
         # Get questions as df
         df = pd.DataFrame(questions['questions'])
+        print(df.columns)
         df['image_id'] = df['image_id'].astype(str)
         df['question_id'] = df['question_id'].astype(str)
-        image_groups = df.groupby('image_id')
+        # image_groups = df.groupby('image_id')
         # for imgid, frame in image_groups:
         #     print(frame.head())
 
@@ -201,9 +209,11 @@ if __name__ == '__main__':
             caption_expansions_sentences = json.loads(fpp.read())
             print("read expansions")
     else:
-        caption_expansions_sentences = expansions_to_sentences(caption_expansions, captions)
+        caption_expansions_sentences, top_caption_expansions_sentences = expansions_to_sentences(caption_expansions, captions)
         with open(f'{save_sentences_caption_expansions}', 'w') as fpp:
             json.dump(caption_expansions_sentences, fpp)
+        with open(f'top_capn_context', 'w') as fpp:
+            json.dump(top_caption_expansions_sentences, fpp)
 
     # Pick final context using chosen method
     if method == "SEMANTIC_SEARCH":
@@ -218,9 +228,11 @@ if __name__ == '__main__':
                 question_expansions_sentences = json.loads(fpp.read())
         else:
             question_sentences = dict(zip(df.question_id, df.question))
-            question_expansions_sentences = expansions_to_sentences(question_expansions, question_sentences)
+            question_expansions_sentences, top_question_expansions_sentences = expansions_to_sentences(question_expansions, question_sentences)
             with open(f'{save_sentences_question_expansions}', 'w') as fpp:
                 json.dump(question_expansions_sentences, fpp)
+            with open(f'top_qn_context', 'w') as fpp:
+                json.dump(top_question_expansions_sentences, fpp)
 
         if method == "SEMANTIC_SEARCH_QN":
             picked_expansions = pick_expansions_method3(question_expansions_sentences, caption_expansions_sentences, df)
@@ -229,11 +241,12 @@ if __name__ == '__main__':
             # picked_expansions = pick_expansions_method2(question_expansions_sentences,
             # caption_expansions_sentences, df)
 
-    with open(f'outputs/picked_expansions_{method}_{dataset}_train.json', 'w') as fpp:
+    with open(final_expansion_save_path, 'w') as fpp:
         json.dump(picked_expansions, fpp)
 
     # Plot first 5 final context + image samples
-    keys = list(picked_expansions.keys())[:5]
+    keys = list(picked_expansions.keys())
+    print(keys)
     for key in keys:
         filename = imageid_to_path(key)
         image_path = f'{images_path}/{filename}'
@@ -244,7 +257,8 @@ if __name__ == '__main__':
             qid = row['question_id']
             text = "".join(picked_expansions[key][qid])
             texts.append(quest + "?\n" + text)
+        print(caption_expansions[imageid_to_path(key)])
         # texts.extend(caption_expansions_sentences[filename])
-        show_image(image_path, "\n\n".join(texts), title=captions[f'COCO_train2014_000000{key}.jpg'])
+        show_image(image_path, "\n\n".join(texts), title=captions[f'{imageid_to_path(key)}'])
         plt.show()
     #
