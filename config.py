@@ -25,8 +25,11 @@ questions_comet_expansions_path = f'data/vqa/expansion/question_expansions/quest
 
 save_sentences_caption_expansions = f'data/vqa/expansion/caption_expansion_sentences_{split}_{dataset}.json'
 save_sentences_question_expansions = f'data/vqa/expansion/question_expansion_sentences_{split}_{dataset}.json'
-method = 'SEMANTIC_SEARCH_QN'  # [1- SEMANTIC_SEARCH, 2-SEMANTIC_SEARCH_QN]
+method = 'TOP'  # [1- SEMANTIC_SEARCH, 2-SEMANTIC_SEARCH_QN, 3-TOP]
 final_expansion_save_path = f'outputs/picked_expansions_{method}_{dataset}_{split}.json'
+
+save_top_caption_expansions = f'data/vqa/expansion/top_cap_sentences_{split}_{dataset}.json'
+save_top_qn_expansions = f'data/vqa/expansion/top_qn_sentences_{split}_{dataset}.json'
 
 # for VCR these are the paths
 # dataset = 'vcr'

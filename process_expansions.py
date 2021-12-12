@@ -135,8 +135,6 @@ def pick_expansions_method1(caption_expanded, questions_df):
 #                 json.dump(final_context, fpp)
 #     return final_context
 
-
-
 def pick_expansions_method3(qn_expansions_sentences, caption_expanded, questions_df):
     final_context = {}
     # print(qn_expansions_sentences.keys())
@@ -156,6 +154,30 @@ def pick_expansions_method3(qn_expansions_sentences, caption_expanded, questions
                 picked_context_qn = symmetric_search([qn], qn_expansions_sentences[idx], k=2, threshold=0.5)
             picked_context_caption = symmetric_search([qn], context, k=3, threshold=0.3)
             image_dict[idx] = picked_context_qn + picked_context_caption
+        final_context[img_id] = image_dict
+        if i % 10000 == 0:
+            with open(f'picked{method}_{split}{i}.json', 'w') as fpp:
+                json.dump(final_context, fpp)
+    return final_context
+
+
+def pick_expansions_method_top(top_question_exp, caption_expanded, questions_df):
+    final_context = {}
+    # print(qn_expansions_sentences.keys())
+    i = 0
+    for key, context in caption_expanded.items():
+        i += 1
+        # if i == 5:
+        #     break
+        img_id = image_path_to_id(key)
+        df_img = questions_df[questions_df['image_id'] == img_id]
+        queries = list(df_img['question'].values)
+        qids = list(df_img['question_id'].values)
+        image_dict = {}
+        picked_context1 = []
+        for qn, idx in zip(queries, qids):
+            if idx in question_expansions_sentences:
+                image_dict[idx] = " ".join(context) + " " + " ".join(top_question_exp[idx])
         final_context[img_id] = image_dict
         if i % 10000 == 0:
             with open(f'picked{method}_{split}{i}.json', 'w') as fpp:
@@ -212,7 +234,7 @@ if __name__ == '__main__':
         caption_expansions_sentences, top_caption_expansions_sentences = expansions_to_sentences(caption_expansions, captions)
         with open(f'{save_sentences_caption_expansions}', 'w') as fpp:
             json.dump(caption_expansions_sentences, fpp)
-        with open(f'top_capn_context', 'w') as fpp:
+        with open(f'{save_top_caption_expansions}', 'w') as fpp:
             json.dump(top_caption_expansions_sentences, fpp)
 
     # Pick final context using chosen method
@@ -231,13 +253,22 @@ if __name__ == '__main__':
             question_expansions_sentences, top_question_expansions_sentences = expansions_to_sentences(question_expansions, question_sentences)
             with open(f'{save_sentences_question_expansions}', 'w') as fpp:
                 json.dump(question_expansions_sentences, fpp)
-            with open(f'top_qn_context', 'w') as fpp:
+            with open(f'{save_top_qn_expansions}', 'w') as fpp:
                 json.dump(top_question_expansions_sentences, fpp)
 
         if method == "SEMANTIC_SEARCH_QN":
             picked_expansions = pick_expansions_method3(question_expansions_sentences, caption_expansions_sentences, df)
-        elif method == "SIMILARITY":
-            print(" This method is not implemented yet!!!!!!!!!!!!!!!!")
+        elif method == "TOP":
+            if os.path.exists(f'{save_top_qn_expansions}'):
+                with open(f'{save_top_qn_expansions}', 'r') as fpp:
+                    top_question_expansions_sentences = json.loads(fpp.read())
+            if os.path.exists(f'{save_top_caption_expansions}'):
+                with open(f'{save_top_caption_expansions}', 'r') as fpp:
+                    top_caption_expansions_sentences = json.loads(fpp.read())
+
+            picked_expansions = pick_expansions_method_top(top_question_expansions_sentences,
+                                                           top_caption_expansions_sentences,
+                                                           df)
             # picked_expansions = pick_expansions_method2(question_expansions_sentences,
             # caption_expansions_sentences, df)
 
@@ -246,8 +277,8 @@ if __name__ == '__main__':
 
     # Plot first 5 final context + image samples
     keys = list(picked_expansions.keys())
-    print(keys)
-    for key in keys:
+    print("Number of smaples", len(keys))
+    for key in keys[:5]:
         filename = imageid_to_path(key)
         image_path = f'{images_path}/{filename}'
         df_image = df[df['image_id'] == key]
