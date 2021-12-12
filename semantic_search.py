@@ -10,6 +10,7 @@ from sentence_transformers import SentenceTransformer, util
 import torch
 
 if torch.cuda.is_available():
+    print("######## USING GPU ###############")
     device = 'cuda'
 else:
     device = 'cpu'

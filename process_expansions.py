@@ -1,5 +1,6 @@
 import os
 import json
+import re
 import pandas as pd
 from PIL import Image
 import matplotlib.pyplot as plt
@@ -10,12 +11,44 @@ import textacy
 import logging
 from semantic_search import symmetric_search, sentence_similarity
 from config import *
+from allennlp.predictors.predictor import Predictor
+from joblib import Parallel, delayed
 
+os.environ["TOKENIZERS_PARALLELISM"] = "True"
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                     datefmt='%m/%d/%Y %H:%M:%S',
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
 nlp = spacy.load('en_core_web_sm')
+srl_model_path = "https://storage.googleapis.com/allennlp-public-models/" \
+                 "structured-prediction-srl-bert.2020.12.15.tar.gz"
+srl_predictor = Predictor.from_path(srl_model_path)
+
+def get_personx_srl(sentence):
+    results = srl_predictor.predict(
+        sentence=sentence
+    )
+    personx = {}
+    for v in results['verbs']:
+        # print(v['verb'])
+        text = v['description']
+        # print(text)
+        search_results = re.finditer(r'\[.*?\]', text)
+        for item in search_results:
+            out = item.group(0).replace("[", "")
+            out = out.replace("]", "")
+            out = out.split(": ")
+            # print(out)
+            if len(out) >= 2:
+                relation = out[0]
+                node = out[1]
+                if relation == 'ARG1' and v['verb'] not in personx:
+                    personx[v['verb']] = node
+                if relation == 'ARG0':
+                    personx[v['verb']] = node
+    print(personx)
+    persons = list(personx.values())
+    return persons[0] if persons else "person"
 
 
 def get_personx(input_event, use_chunk=True):
@@ -52,10 +85,9 @@ def get_personx(input_event, use_chunk=True):
     return personx, False
 
 
-def expansions_to_sentences(expansions, sentences):
-    all_contexts = {}
-    all_top_contexts = {}
-    #  "oEffect"
+def job(sentences, key, exp, srl, ):
+    context = []
+    top_context = []
     relation_map = {
         "AtLocation": "is located at",
         "MadeUpOf": "is made of",
@@ -72,20 +104,35 @@ def expansions_to_sentences(expansions, sentences):
         "xReact": "reacts",
         "xReason": "reasons",
         "xWant": "wants"}
-    for key, exp in expansions.items():
-        context = []
-        top_context = []
+    if srl:
+        personx = get_personx_srl(sentences[key])
+    else:
         personx, _ = get_personx(sentences[key])  # the sentence expanded by comet
-        for relation, beams in exp.items():
-            if relation in relation_map:
-                top_context.append(personx + " " + relation_map[relation] + beams[0] + ".")
-                for beam in beams[:2]:
-                    if beam != " none" and beam != "   ":
-                        sent = personx + " " + relation_map[relation] + beam + "."
-                        if sent not in context:
-                            context.append(sent)
-        all_contexts[key] = context
-        all_top_contexts[key] = top_context
+    for relation, beams in exp.items():
+        if relation in relation_map:
+            top_context.append(personx + " " + relation_map[relation] + beams[0] + ".")
+            for beam in beams[:5]:
+                if beam != " none" and beam != "   ":
+                    sent = personx + " " + relation_map[relation] + beam + "."
+                    if sent not in context:
+                        context.append(sent)
+    return context, top_context
+
+
+def expansions_to_sentences(expansions, sentences, srl=False, parallel=False):
+    if parallel:
+        contexts, top_contexts = Parallel(n_jobs=-1)(
+            delayed(job)(sentences, key, exp, srl) for key, exp in expansions.items())
+    else:
+        contexts = []
+        top_contexts = []
+        for key, exp in expansions.items():
+            context, top_context = job(sentences, key, exp, srl)
+            contexts.append(context)
+            top_contexts.append(top_context)
+    keys = list(expansions.keys())
+    all_contexts = dict(zip(keys, contexts))
+    all_top_contexts = dict(zip(keys, top_contexts))
     return all_contexts, all_top_contexts
 
 
@@ -206,6 +253,7 @@ def show_image(image_path, text="", title=""):
 
 
 if __name__ == '__main__':
+    # get_personx_srl("Are the trees taller than the giraffes")
     # Open saved captions predictions, comet expansions for captions and questions
     with open(captions_path, 'r') as fp:
         captions = json.loads(fp.read())
@@ -231,7 +279,8 @@ if __name__ == '__main__':
             caption_expansions_sentences = json.loads(fpp.read())
             print("read expansions")
     else:
-        caption_expansions_sentences, top_caption_expansions_sentences = expansions_to_sentences(caption_expansions, captions)
+        caption_expansions_sentences, top_caption_expansions_sentences = expansions_to_sentences(caption_expansions,
+                                                                                                 captions)
         with open(f'{save_sentences_caption_expansions}', 'w') as fpp:
             json.dump(caption_expansions_sentences, fpp)
         with open(f'{save_top_caption_expansions}', 'w') as fpp:
@@ -250,7 +299,8 @@ if __name__ == '__main__':
                 question_expansions_sentences = json.loads(fpp.read())
         else:
             question_sentences = dict(zip(df.question_id, df.question))
-            question_expansions_sentences, top_question_expansions_sentences = expansions_to_sentences(question_expansions, question_sentences)
+            question_expansions_sentences, top_question_expansions_sentences = expansions_to_sentences(
+                question_expansions, question_sentences)
             with open(f'{save_sentences_question_expansions}', 'w') as fpp:
                 json.dump(question_expansions_sentences, fpp)
             with open(f'{save_top_qn_expansions}', 'w') as fpp:

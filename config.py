@@ -18,14 +18,14 @@ For each question perform semantic search to find e1...ek
 dataset = 'vqa'
 split = 'val2014'
 images_path = f'data/vqa/{split}'
-questions_path = 'data/vqa/questions/v2_OpenEnded_mscoco_val2014_questions.json'
-captions_path = f'data/vqa/expansion/captions/captions_val_vqa.json'
-captions_comet_expansions_path = f'data/vqa/expansion/caption_expansions/caption_comet_expansions_val_vqa.json'
-questions_comet_expansions_path = f'data/vqa/expansion/question_expansions/question_comet_expansions_val_vqa.json'
+questions_path = f'data/vqa/questions/v2_OpenEnded_mscoco_{split}_questions.json'
+captions_path = f'data/vqa/expansion/captions/captions_{split}_vqa.json'
+captions_comet_expansions_path = f'data/vqa/expansion/caption_expansions/caption_comet_expansions_{split}_vqa.json'
+questions_comet_expansions_path = f'data/vqa/expansion/question_expansions/question_comet_expansions_{split}_vqa.json'
 
 save_sentences_caption_expansions = f'data/vqa/expansion/caption_expansion_sentences_{split}_{dataset}.json'
 save_sentences_question_expansions = f'data/vqa/expansion/question_expansion_sentences_{split}_{dataset}.json'
-method = 'TOP'  # [1- SEMANTIC_SEARCH, 2-SEMANTIC_SEARCH_QN, 3-TOP]
+method = 'SEMANTIC_SEARCH_QN'  # [1- SEMANTIC_SEARCH, 2-SEMANTIC_SEARCH_QN, 3-TOP]
 final_expansion_save_path = f'outputs/picked_expansions_{method}_{dataset}_{split}.json'
 
 save_top_caption_expansions = f'data/vqa/expansion/top_cap_sentences_{split}_{dataset}.json'
