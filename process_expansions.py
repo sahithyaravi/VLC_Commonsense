@@ -119,7 +119,7 @@ def job(sentences, key, exp, srl, ):
     return context, top_context
 
 
-def expansions_to_sentences(expansions, sentences, srl=False, parallel=False):
+def expansions_to_sentences(expansions, sentences, srl=True, parallel=False):
     if parallel:
         contexts, top_contexts = Parallel(n_jobs=-1)(
             delayed(job)(sentences, key, exp, srl) for key, exp in expansions.items())
