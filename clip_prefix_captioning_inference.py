@@ -256,20 +256,20 @@ model.load_state_dict(torch.load(model_path, map_location=CPU))
 model = model.eval()
 device = CUDA(0) if is_gpu else "cpu"
 model = model.to(device)
-dataset = "vcr"  # ["vqa", "vcr"]
-split = 'val'
+dataset = "vqa"  # ["vqa", "vcr"]
+split = 'test'
 
 if dataset == "vqa":
 
     sample_size = 8000  # number of images to caption
-    path_to_files = f'{split}2014'
-    files = os.listdir(path_to_files)
+    path_to_files = '/ubc/cs/research/nlp/sahiravi/datasets/test2015'
+    files = os.listdir('/ubc/cs/research/nlp/sahiravi/datasets/test2015')
     # files = random.sample(files, sample_size)
 
 
 else:
 
-    path_to_files = '/home/sahiravi/scratch/vcr1images'
+    path_to_files = '/ubc/cs/research/nlp/sahiravi/datasets/test2015'
     path_to_annotations = '/home/sahiravi/scratch/'
     data = []
     with open(path_to_annotations + f'{split}.jsonl', 'r') as fp:

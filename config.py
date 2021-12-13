@@ -16,20 +16,21 @@ For each question perform semantic search to find e1...ek
 
 # VQA
 dataset = 'vqa'
-split = 'val2014'
-images_path = f'data/vqa/{split}'
-questions_path = f'data/vqa/questions/v2_OpenEnded_mscoco_{split}_questions.json'
-captions_path = f'data/vqa/expansion/captions/captions_{split}_vqa.json'
-captions_comet_expansions_path = f'data/vqa/expansion/caption_expansions/caption_comet_expansions_{split}_vqa.json'
-questions_comet_expansions_path = f'data/vqa/expansion/question_expansions/question_comet_expansions_{split}_vqa.json'
 
-save_sentences_caption_expansions = f'data/vqa/expansion/caption_expansion_sentences_{split}_{dataset}.json'
-save_sentences_question_expansions = f'data/vqa/expansion/question_expansion_sentences_{split}_{dataset}.json'
-method = 'SEMANTIC_SEARCH_QN'  # [1- SEMANTIC_SEARCH, 2-SEMANTIC_SEARCH_QN, 3-TOP]
-final_expansion_save_path = f'outputs/picked_expansions_{method}_{dataset}_{split}.json'
+split = 'train2014'
+images_path = f'datasets/{split}'
+questions_path = f'/ubc/cs/research/nlp/sahiravi/datasets/questions/v2_OpenEnded_mscoco_{split}_questions.json'
+captions_path = f'/ubc/cs/research/nlp/sahiravi/datasets/vqa/captions_{split}_vqa.json'
+captions_comet_expansions_path = f'/ubc/cs/research/nlp/sahiravi/datasets/expansion/caption_expansions/caption_comet_expansions_{split}_vqa.json'
+questions_comet_expansions_path = f'/ubc/cs/research/nlp/sahiravi/datasets/expansion/question_expansions/question_comet_expansions_{split}_vqa.json'
+save_sentences_caption_expansions = f'caption_expansion_sentences_{split}_{dataset}.json'
+save_sentences_question_expansions = f'question_expansion_sentences_{split}_{dataset}.json'
+method = 'SEMANTIC_SEARCH'  # [1- SEMANTIC_SEARCH, 2-SEMANTIC_SEARCH_QN]
+final_expansion_save_path = f'picked_expansions_{method}_{dataset}_{split}_V2.json'
 
-save_top_caption_expansions = f'data/vqa/expansion/top_cap_sentences_{split}_{dataset}.json'
-save_top_qn_expansions = f'data/vqa/expansion/top_qn_sentences_{split}_{dataset}.json'
+
+save_top_caption_expansions = f'top_cap_sentences_{split}_{dataset}.json'
+save_top_qn_expansions = f'top_qn_sentences_{split}_{dataset}.json'
 
 # for VCR these are the paths
 # dataset = 'vcr'
