@@ -40,12 +40,12 @@ def symmetric_search(queries, corpus, k=3, threshold=0):
         # print("\n\n======================\n\n")
         # print("Query:", query)
         # print(f"\nTop {k} most similar sentences in corpus:")
-        sent = ""
+        sent = []
         for score, idx in zip(top_results[0], top_results[1]):
-            #print(corpus[idx], "(Score: {:.4f})".format(score))
-            sent += " "+ corpus[idx]
             if score > threshold and sent not in result:
-                result.append(sent)
+                sent.append(corpus[idx])
+
+        result.append(" ".join(sent))
     return result
 
 

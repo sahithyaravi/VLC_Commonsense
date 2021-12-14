@@ -91,7 +91,15 @@ def get_personx(input_event, use_chunk=True):
         personx = subj_head[
             0].text  # " ".join([t.text for t in list(subj_head.lefts) + [subj_head] + list(subj_head.rights)])
 
-    return personx, False
+    substring_list = ['How', 'how', 'What', 'what', 'Where', 'where', 'Why', 'why',
+    'Which', 'which']
+    returnval = personx
+    for subs in substring_list:
+        if subs in returnval:
+            returnval = returnval.replace(subs, "")
+
+
+    return returnval if returnval else "This", False
 
 
 def job(sentences, key, exp, srl, ):
@@ -113,6 +121,10 @@ def job(sentences, key, exp, srl, ):
         "xReact": "reacts",
         "xReason": "reasons",
         "xWant": "wants"}
+    substring_list = ['How', 'how', 'What', 'what', 'Where', 'where', 'Why', 'why',
+                      'Which', 'which']
+
+
     if srl:
         personx = get_personx_srl(sentences[key])
     else:
@@ -123,7 +135,12 @@ def job(sentences, key, exp, srl, ):
             for beam in beams[:5]:
                 if beam != " none" and beam != "   ":
                     sent = personx + " " + relation_map[relation] + beam + "."
-                    if sent not in context:
+                    in_subs = False
+                    for subs in substring_list:
+                        if subs in sent:
+                            in_subs = True
+                            break
+                    if sent not in context and not in_subs:
                         context.append(sent)
     return context, top_context
 
@@ -151,16 +168,14 @@ def pick_expansions_method1(caption_expanded, questions_df):
     i = 0
     for key, context in caption_expanded.items():
         i += 1
-        # if i == 5:
-        #     break
+        if i == 5:
+            break
         img_id = image_path_to_id(key)
         df_img = questions_df[questions_df['image_id'] == img_id]
         queries = list(df_img['question'].values)
         qids = list(df_img['question_id'].values)
-        image_dict = {}
-        for qn, idx in zip(queries, qids):
-            picked_context_caption = symmetric_search([qn], context, k=5, threshold=0.01)
-            image_dict[idx] =  picked_context_caption
+        picked = symmetric_search(queries, context, k=5, threshold=0.01)
+        image_dict = dict(zip(qids, picked))
         final_context[img_id] = image_dict
         if i % 10000 == 0:
             with open(f'picked{method}_{split}{i}.json', 'w') as fpp:
@@ -198,8 +213,8 @@ def pick_expansions_method3(qn_expansions_sentences, caption_expanded, questions
     i = 0
     for key, context in caption_expanded.items():
         i += 1
-        # if i == 5:
-        #     break
+        if i == 40:
+            break
         img_id = image_path_to_id(key)
         df_img = questions_df[questions_df['image_id'] == img_id]
         queries = list(df_img['question'].values)
@@ -207,8 +222,8 @@ def pick_expansions_method3(qn_expansions_sentences, caption_expanded, questions
         image_dict = {}
         for qn, idx in zip(queries, qids):
             if idx in question_expansions_sentences:
-                picked_context_qn = symmetric_search([qn], qn_expansions_sentences[idx], k=2, threshold=0.5)
-            picked_context_caption = symmetric_search([qn], context, k=3, threshold=0.3)
+                picked_context_qn = symmetric_search([qn], qn_expansions_sentences[idx], k=2, threshold=0.3)
+            picked_context_caption = symmetric_search([qn], context, k=3, threshold=0.01)
             image_dict[idx] = picked_context_qn + picked_context_caption
         final_context[img_id] = image_dict
         if i % 10000 == 0:
@@ -303,13 +318,14 @@ if __name__ == '__main__':
     else:
         # These two methods use both qn and caption expansions
         # Expand question expansions to sentences
+        print("################### SENTENCES FROM QNS ################")
         if os.path.exists(save_sentences_question_expansions):
             with open(f'{save_sentences_question_expansions}', 'r') as fpp:
                 question_expansions_sentences = json.loads(fpp.read())
         else:
             question_sentences = dict(zip(df.question_id, df.question))
             question_expansions_sentences, top_question_expansions_sentences = expansions_to_sentences(
-                question_expansions, question_sentences, srl=True)
+                question_expansions, question_sentences, srl=False)
             with open(f'{save_sentences_question_expansions}', 'w') as fpp:
                 json.dump(question_expansions_sentences, fpp)
             with open(f'{save_top_qn_expansions}', 'w') as fpp:
@@ -334,21 +350,22 @@ if __name__ == '__main__':
     with open(final_expansion_save_path, 'w') as fpp:
         json.dump(picked_expansions, fpp)
 
-    # # Plot first 5 final context + image samples
-    # keys = list(picked_expansions.keys())
-    # print("Number of smaples", len(keys))
-    # for key in keys[:5]:
-    #     filename = imageid_to_path(key)
-    #     image_path = f'{images_path}/{filename}'
-    #     df_image = df[df['image_id'] == key]
-    #     texts = []
-    #     for index, row in df_image.iterrows():
-    #         quest = row['question']
-    #         qid = row['question_id']
-    #         text = "".join(picked_expansions[key][qid])
-    #         texts.append(quest + "?\n" + text)
-    #     print(caption_expansions[imageid_to_path(key)])
-    #     # texts.extend(caption_expansions_sentences[filename])
-    #     show_image(image_path, "\n\n".join(texts), title=captions[f'{imageid_to_path(key)}'])
-    #     plt.show()
-    # #
+    # Plot first 5 final context + image samples
+    keys = list(picked_expansions.keys())
+    print("Number of smaples", len(keys))
+    for key in keys:
+        filename = imageid_to_path(key)
+        image_path = f'{images_path}/{filename}'
+        df_image = df[df['image_id'] == key]
+        texts = []
+        for index, row in df_image.iterrows():
+            quest = row['question']
+            qid = row['question_id']
+            print(picked_expansions[key][qid])
+            text = "".join(picked_expansions[key][qid])
+            texts.append(quest + "?\n" + text)
+        print(caption_expansions[imageid_to_path(key)])
+        # texts.extend(caption_expansions_sentences[filename])
+        show_image(image_path, "\n\n".join(texts), title=captions[f'{imageid_to_path(key)}'])
+        plt.show()
+    #
