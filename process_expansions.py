@@ -132,7 +132,7 @@ def job(sentences, key, exp, srl, ):
     for relation, beams in exp.items():
         if relation in relation_map:
             top_context.append(personx + " " + relation_map[relation] + beams[0] + ".")
-            for beam in beams[:5]:
+            for beam in beams[:1]:
                 if beam != " none" and beam != "   ":
                     sent = personx + " " + relation_map[relation] + beam + "."
                     in_subs = False
@@ -168,18 +168,19 @@ def pick_expansions_method1(caption_expanded, questions_df):
     i = 0
     for key, context in caption_expanded.items():
         i += 1
-        if i == 5:
-            break
+        # if i == 45:
+        #     break
         img_id = image_path_to_id(key)
         df_img = questions_df[questions_df['image_id'] == img_id]
-        queries = list(df_img['question'].values)
-        qids = list(df_img['question_id'].values)
-        picked = symmetric_search(queries, context, k=5, threshold=0.01)
-        image_dict = dict(zip(qids, picked))
-        final_context[img_id] = image_dict
-        if i % 10000 == 0:
-            with open(f'picked{method}_{split}{i}.json', 'w') as fpp:
-                json.dump(final_context, fpp)
+        if not df_img.empty:
+            queries = list(df_img['question'].values)
+            qids = list(df_img['question_id'].values)
+            picked = symmetric_search(queries, context, k=5, threshold=0.01)
+            image_dict = dict(zip(qids, picked))
+            final_context[img_id] = image_dict
+            if i % 10000 == 0:
+                with open(f'picked{method}_{split}{i}.json', 'w') as fpp:
+                    json.dump(final_context, fpp)
     return final_context
 
 
@@ -213,19 +214,22 @@ def pick_expansions_method3(qn_expansions_sentences, caption_expanded, questions
     i = 0
     for key, context in caption_expanded.items():
         i += 1
-        if i == 40:
-            break
+        # if i == 300:
+        #     break
         img_id = image_path_to_id(key)
         df_img = questions_df[questions_df['image_id'] == img_id]
-        queries = list(df_img['question'].values)
-        qids = list(df_img['question_id'].values)
-        image_dict = {}
-        for qn, idx in zip(queries, qids):
-            if idx in question_expansions_sentences:
-                picked_context_qn = symmetric_search([qn], qn_expansions_sentences[idx], k=2, threshold=0.3)
-            picked_context_caption = symmetric_search([qn], context, k=3, threshold=0.01)
-            image_dict[idx] = picked_context_qn + picked_context_caption
-        final_context[img_id] = image_dict
+        if not df_img.empty:
+            queries = list(df_img['question'].values)
+            qids = list(df_img['question_id'].values)
+            image_dict = {}
+            picked_context_qn = ""
+            for qn, idx in zip(queries, qids):
+                if idx in question_expansions_sentences:
+                    picked_context_qn = symmetric_search([qn], qn_expansions_sentences[idx], k=10, threshold=0.3)
+                picked_context_caption = symmetric_search([qn], context, k=3, threshold=0)
+                image_dict[idx] = picked_context_qn + picked_context_caption
+
+                final_context[img_id] = image_dict
         if i % 10000 == 0:
             with open(f'picked{method}_{split}{i}.json', 'w') as fpp:
                 json.dump(final_context, fpp)
@@ -285,17 +289,17 @@ if __name__ == '__main__':
         caption_expansions = json.loads(fp.read())
     with open(questions_comet_expansions_path, 'r') as fp:
         question_expansions = json.loads(fp.read())
-    if dataset == "vqa":
-        with open(questions_path, 'r') as fp:
-            questions = json.loads(fp.read())
-        # Get questions as df
-        df = pd.DataFrame(questions['questions'])
-        print(df.columns)
-        df['image_id'] = df['image_id'].astype(str)
-        df['question_id'] = df['question_id'].astype(str)
-        # image_groups = df.groupby('image_id')
-        # for imgid, frame in image_groups:
-        #     print(frame.head())
+
+    with open(questions_path, 'r') as fp:
+        questions = json.loads(fp.read())
+    # Get questions as df
+    df = pd.DataFrame(questions['questions'])
+    print(df.columns)
+    df['image_id'] = df['image_id'].astype(str)
+    df['question_id'] = df['question_id'].astype(str)
+    # image_groups = df.groupby('image_id')
+    # for imgid, frame in image_groups:
+    #     print(frame.head())
 
     # Expanded captions to sentences
     if os.path.exists(save_sentences_caption_expansions):
@@ -364,7 +368,7 @@ if __name__ == '__main__':
             print(picked_expansions[key][qid])
             text = "".join(picked_expansions[key][qid])
             texts.append(quest + "?\n" + text)
-        print(caption_expansions[imageid_to_path(key)])
+        #print(caption_expansions[imageid_to_path(key)])
         # texts.extend(caption_expansions_sentences[filename])
         show_image(image_path, "\n\n".join(texts), title=captions[f'{imageid_to_path(key)}'])
         plt.show()
