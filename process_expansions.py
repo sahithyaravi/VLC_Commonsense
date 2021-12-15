@@ -50,8 +50,11 @@ def get_personx_srl(sentence):
                     personx[v['verb']] = node
     print(personx)
     persons = list(personx.values())
-    substring_list = ['How', 'how', 'What', 'what', 'Where', 'where', 'Why', 'why',
-    'Which', 'which']
+    substring_list = ['what is', 'what are', 'where', 'where is', 'where are', 'what',
+                      'how are', 'how many', 'how is', 'how', 'where is', 'where are', 'where',
+                      'when was', 'when is',
+                      'which is', 'which are', 'can you', 'which', 'would the',
+                      'is the', 'is this', 'why did', 'why is', 'are the', 'do', 'why']
     returnval = persons[0] if persons else ""
     for subs in substring_list:
         if subs in returnval:
@@ -91,8 +94,11 @@ def get_personx(input_event, use_chunk=True):
         personx = subj_head[
             0].text  # " ".join([t.text for t in list(subj_head.lefts) + [subj_head] + list(subj_head.rights)])
 
-    substring_list = ['How', 'how', 'What', 'what', 'Where', 'where', 'Why', 'why',
-    'Which', 'which']
+    substring_list = ['what is', 'what are', 'where', 'where is', 'where are', 'what',
+                      'how are', 'how many', 'how is', 'how', 'where is', 'where are', 'where',
+                      'when was', 'when is',
+                      'which is', 'which are', 'can you', 'which', 'would the',
+                      'is the', 'is this', 'why did', 'why is', 'are the', 'do', 'why']
     returnval = personx
     for subs in substring_list:
         if subs in returnval:
@@ -121,8 +127,11 @@ def job(sentences, key, exp, srl, ):
         "xReact": "reacts",
         "xReason": "reasons",
         "xWant": "wants"}
-    substring_list = ['How', 'how', 'What', 'what', 'Where', 'where', 'Why', 'why',
-                      'Which', 'which']
+    substring_list = ['what is', 'what are', 'where', 'where is', 'where are', 'what',
+                      'how are', 'how many', 'how is', 'how', 'where is', 'where are', 'where',
+                      'when was', 'when is',
+                      'which is', 'which are', 'can you', 'which', 'would the',
+                      'is the', 'is this', 'why did', 'why is', 'are the', 'do', 'why']
 
 
     if srl:
@@ -132,12 +141,12 @@ def job(sentences, key, exp, srl, ):
     for relation, beams in exp.items():
         if relation in relation_map:
             top_context.append(personx + " " + relation_map[relation] + beams[0] + ".")
-            for beam in beams[:1]:
+            for beam in beams[:2]:
                 if beam != " none" and beam != "   ":
                     sent = personx + " " + relation_map[relation] + beam + "."
                     in_subs = False
                     for subs in substring_list:
-                        if subs in sent:
+                        if sent.startswith(subs):
                             in_subs = True
                             break
                     if sent not in context and not in_subs:
