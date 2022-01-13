@@ -11,7 +11,7 @@ import textacy
 import logging
 from semantic_search import symmetric_search, sentence_similarity
 from config import *
-# from allennlp.predictors.predictor import Predictor
+from allennlp.predictors.predictor import Predictor
 from joblib import Parallel, delayed
 
 os.environ["TOKENIZERS_PARALLELISM"] = "True"
