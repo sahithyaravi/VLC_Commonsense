@@ -20,11 +20,26 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
 nlp = spacy.load('en_core_web_sm')
-
+exclude_list = ['what is', 'what are', 'where', 'where is', 'where are', 'what',
+                      'how are', 'how many', 'how is', 'how', 'where is', 'where are', 'where',
+                      'when was', 'when is',
+                      'which is', 'which are', 'can you', 'which', 'would the',
+                      'is the', 'is this', 'why did', 'why is', 'are the', 'do', 'why']
 
 # srl_model_path = "https://storage.googleapis.com/allennlp-public-models/" \
 #                  "structured-prediction-srl-bert.2020.12.15.tar.gz"
 # srl_predictor = Predictor.from_path(srl_model_path)
+
+def load_json(filepath):
+    with open(filepath, 'r') as fp:
+        file = json.loads(fp.read())
+    return file
+
+
+def save_json(filename, data):
+    with open(filename, 'w') as fpp:
+        json.dump(data, fpp)
+
 
 def get_personx_srl(sentence):
     results = srl_predictor.predict(
@@ -65,8 +80,10 @@ def get_personx_srl(sentence):
 
 def get_personx(input_event, use_chunk=True):
     """
-    Returns the subject of a sentence
-    We use this to get person x COMET has referred to
+    get person x of the comet event
+    :param input_event:
+    :param use_chunk:
+    :return:
     """
     doc = nlp(input_event)
     svos = [svo for svo in textacy.extract.subject_verb_object_triples(doc)]
@@ -87,52 +104,51 @@ def get_personx(input_event, use_chunk=True):
                 f'No subject was found for the following sentence: "{input_event}". Skipping this sentence')
             return "", False
     else:
-        # print(svos)
         subj_head = svos[0][0]
-        # print(subj_head)
         # is_named_entity = subj_head.root.pos_ == "PROP"
-        personx = subj_head[
-            0].text  # " ".join([t.text for t in list(subj_head.lefts) + [subj_head] + list(subj_head.rights)])
-
-    substring_list = ['what is', 'what are', 'where', 'where is', 'where are', 'what',
-                      'how are', 'how many', 'how is', 'how', 'where is', 'where are', 'where',
-                      'when was', 'when is',
-                      'which is', 'which are', 'can you', 'which', 'would the',
-                      'is the', 'is this', 'why did', 'why is', 'are the', 'do', 'why']
+        personx = subj_head[0].text
+        # " ".join([t.text for t in list(subj_head.lefts) + [subj_head] + list(subj_head.rights)])
     returnval = personx
-    for subs in substring_list:
-        if subs in returnval:
-            returnval = returnval.replace(subs, "")
-
+    # substring_list = ['what is', 'what are', 'where', 'where is', 'where are', 'what',
+    #                   'how are', 'how many', 'how is', 'how', 'where is', 'where are', 'where',
+    #                   'when was', 'when is',
+    #                   'which is', 'which are', 'can you', 'which', 'would the',
+    #                   'is the', 'is this', 'why did', 'why is', 'are the', 'do', 'why']
+    # returnval = personx
+    # for subs in substring_list:
+    #     if subs in returnval:
+    #         returnval = returnval.replace(subs, "")
 
     return returnval if returnval else "This", False
 
 
-def job(sentences, key, exp, srl, ):
+def job(sentences, key, exp, srl):
+    """
+
+    :param sentences: actual sentence which was expanded
+    :param key: index to identify sentences/expansions
+    :param exp: expansions of the sentences
+    :param srl: if srl should be used for generating person x
+    :return:
+    """
     context = []
     top_context = []
     relation_map = {
         "AtLocation": "is located at",
         "MadeUpOf": "is made of",
         "UsedFor": "is used for",
-        "CapableOf": "is capable of",
+        "CapableOf": "can",
         "Desires": "desires",
         "NotDesires": "does not desire",
         "Causes": "causes",
         "HasProperty": "is",
         "xAttr": "is seen as",
-        "xEffect": "sees the effect",
-        "xIntent": "intends",
-        "xNeed": "needed to",
-        "xReact": "reacts",
+        "xEffect": "then sees the effect",
+        "xIntent": "wanted",
+        "xNeed": "needed",
+        "xReact": "feels",
         "xReason": "reasons",
         "xWant": "wants"}
-    substring_list = ['what is', 'what are', 'where', 'where is', 'where are', 'what',
-                      'how are', 'how many', 'how is', 'how', 'where is', 'where are', 'where',
-                      'when was', 'when is',
-                      'which is', 'which are', 'can you', 'which', 'would the',
-                      'is the', 'is this', 'why did', 'why is', 'are the', 'do', 'why']
-
 
     if srl:
         personx = get_personx_srl(sentences[key])
@@ -145,7 +161,7 @@ def job(sentences, key, exp, srl, ):
                 if beam != " none" and beam != "   ":
                     sent = personx + " " + relation_map[relation] + beam + "."
                     in_subs = False
-                    for subs in substring_list:
+                    for subs in exclude_list:
                         if sent.startswith(subs):
                             in_subs = True
                             break
@@ -171,7 +187,13 @@ def expansions_to_sentences(expansions, sentences, srl=False, parallel=False):
     return all_contexts, all_top_contexts
 
 
-def pick_expansions_method1(caption_expanded, questions_df):
+def search_caption_expansions(caption_expanded, questions_df):
+    """
+
+    :param caption_expanded:
+    :param questions_df:
+    :return:
+    """
     final_context = {}
     # print(qn_expansions_sentences.keys())
     i = 0
@@ -193,31 +215,13 @@ def pick_expansions_method1(caption_expanded, questions_df):
     return final_context
 
 
-# def pick_expansions_method2(question_expansions_sentences, caption_expanded, questions_df):
-#     final_context = {}
-#     i = 0
-#     for key, context in caption_expanded.items():
-#         i += 1
-#         if i == 10:
-#             break
-#         img_id = key.replace('COCO_train2014_000000', "")
-#         img_id = img_id.replace('.jpg', "")
-#         df_img = questions_df[questions_df['image_id'] == img_id]
-#         queries = list(df_img['question'].values)
-#         qids = list(df_img['question_id'].values)
-#         image_dict = {}
-#         for idx in qids:
-#             if idx in question_expansions_sentences:
-#                 sentb = question_expansions_sentences[idx]
-#                 picked_context = sentence_similarity(sentb, context)
-#                 image_dict[idx] = picked_context
-#         final_context[img_id] = image_dict
-#         if i % 1000 == 0:
-#             with open(f'picked{method}_train{i}.json', 'w') as fpp:
-#                 json.dump(final_context, fpp)
-#     return final_context
-
-def pick_expansions_method3(qn_expansions_sentences, caption_expanded, questions_df):
+def search_caption_qn_expansions(qn_expansions_sentences, caption_expanded, questions_df):
+    """
+    :param qn_expansions_sentences:
+    :param caption_expanded:
+    :param questions_df:
+    :return:
+    """
     final_context = {}
     # print(qn_expansions_sentences.keys())
     i = 0
@@ -246,6 +250,13 @@ def pick_expansions_method3(qn_expansions_sentences, caption_expanded, questions
 
 
 def pick_expansions_method_top(top_question_exp, caption_expanded, questions_df):
+    """
+
+    :param top_question_exp:
+    :param caption_expanded:
+    :param questions_df:
+    :return:
+    """
     final_context = {}
     # print(qn_expansions_sentences.keys())
     i = 0
@@ -270,6 +281,13 @@ def pick_expansions_method_top(top_question_exp, caption_expanded, questions_df)
 
 
 def show_image(image_path, text="", title=""):
+    """
+
+    :param image_path:
+    :param text:
+    :param title:
+    :return:
+    """
     fig = plt.figure()
     fig.suptitle(title)
     # plt.rcParams["figure.figsize"] = (25, 20)
@@ -290,43 +308,31 @@ def show_image(image_path, text="", title=""):
 
 
 if __name__ == '__main__':
-    # get_personx_srl("Are the trees taller than the giraffes")
-    # Open saved captions predictions, comet expansions for captions and questions
-    with open(captions_path, 'r') as fp:
-        captions = json.loads(fp.read())
-    with open(captions_comet_expansions_path, 'r') as fp:
-        caption_expansions = json.loads(fp.read())
-    with open(questions_comet_expansions_path, 'r') as fp:
-        question_expansions = json.loads(fp.read())
+    # load captions, questions and expansions
+    captions = load_json(captions_path)
+    caption_expansions = load_json(captions_comet_expansions_path)
+    question_expansions = load_json(questions_comet_expansions_path)
+    questions = load_json(questions_path)
 
-    with open(questions_path, 'r') as fp:
-        questions = json.loads(fp.read())
-    # Get questions as df
+    # question dict to dataframe
     df = pd.DataFrame(questions['questions'])
     print(df.columns)
     df['image_id'] = df['image_id'].astype(str)
     df['question_id'] = df['question_id'].astype(str)
-    # image_groups = df.groupby('image_id')
-    # for imgid, frame in image_groups:
-    #     print(frame.head())
 
     # Expanded captions to sentences
     if os.path.exists(save_sentences_caption_expansions):
-        with open(f'{save_sentences_caption_expansions}', 'r') as fpp:
-            caption_expansions_sentences = json.loads(fpp.read())
-            print("read expansions")
+        caption_expansions_sentences = load_json(save_sentences_caption_expansions)
     else:
         caption_expansions_sentences, top_caption_expansions_sentences = expansions_to_sentences(caption_expansions,
                                                                                                  captions)
-        with open(f'{save_sentences_caption_expansions}', 'w') as fpp:
-            json.dump(caption_expansions_sentences, fpp)
-        with open(f'{save_top_caption_expansions}', 'w') as fpp:
-            json.dump(top_caption_expansions_sentences, fpp)
+        save_json(f'{save_sentences_caption_expansions}', caption_expansions_sentences )
+        save_json(f'{save_top_caption_expansions}', top_caption_expansions_sentences )
 
     # Pick final context using chosen method
     if method == "SEMANTIC_SEARCH":
         # This method only uses captions and picks a relevant caption expansion based on qn
-        picked_expansions = pick_expansions_method1(caption_expansions_sentences, df)
+        picked_expansions = search_caption_expansions(caption_expansions_sentences, df)
 
     else:
         # These two methods use both qn and caption expansions
@@ -339,13 +345,12 @@ if __name__ == '__main__':
             question_sentences = dict(zip(df.question_id, df.question))
             question_expansions_sentences, top_question_expansions_sentences = expansions_to_sentences(
                 question_expansions, question_sentences, srl=False)
-            with open(f'{save_sentences_question_expansions}', 'w') as fpp:
-                json.dump(question_expansions_sentences, fpp)
-            with open(f'{save_top_qn_expansions}', 'w') as fpp:
-                json.dump(top_question_expansions_sentences, fpp)
+            save_json(f'{save_sentences_question_expansions}', question_expansions_sentences)
+            save_json(f'{save_sentences_question_expansions}', top_question_expansions_sentences)
 
         if method == "SEMANTIC_SEARCH_QN":
-            picked_expansions = pick_expansions_method3(question_expansions_sentences, caption_expansions_sentences, df)
+            picked_expansions = search_caption_qn_expansions(question_expansions_sentences,
+                                                             caption_expansions_sentences, df)
         elif method == "TOP":
             if os.path.exists(f'{save_top_qn_expansions}'):
                 with open(f'{save_top_qn_expansions}', 'r') as fpp:
@@ -360,8 +365,7 @@ if __name__ == '__main__':
             # picked_expansions = pick_expansions_method2(question_expansions_sentences,
             # caption_expansions_sentences, df)
 
-    with open(final_expansion_save_path, 'w') as fpp:
-        json.dump(picked_expansions, fpp)
+    save_json(final_expansion_save_path, picked_expansions)
 
     # Plot first 5 final context + image samples
     keys = list(picked_expansions.keys())
@@ -377,7 +381,7 @@ if __name__ == '__main__':
             print(picked_expansions[key][qid])
             text = "".join(picked_expansions[key][qid])
             texts.append(quest + "?\n" + text)
-        #print(caption_expansions[imageid_to_path(key)])
+        # print(caption_expansions[imageid_to_path(key)])
         # texts.extend(caption_expansions_sentences[filename])
         show_image(image_path, "\n\n".join(texts), title=captions[f'{imageid_to_path(key)}'])
         plt.show()
