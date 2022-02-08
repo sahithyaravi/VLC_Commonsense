@@ -9,7 +9,7 @@ from matplotlib import gridspec
 import spacy
 import textacy
 import logging
-from semantic_search import symmetric_search, sentence_similarity
+from semantic_search import symmetric_search, sentence_similarity, image_symmetric_search
 from config import *
 # from allennlp.predictors.predictor import Predictor
 from joblib import Parallel, delayed
@@ -206,7 +206,8 @@ def search_caption_expansions(caption_expanded, questions_df):
         if not df_img.empty:
             queries = list(df_img['question'].values)
             qids = list(df_img['question_id'].values)
-            picked = symmetric_search(queries, context, k=5, threshold=0.01)
+            # picked = symmetric_search(queries, context, k=5, threshold=0.01)
+            picked = image_symmetric_search(img_id, queries, context, k=15, threshold=0.01)
             image_dict = dict(zip(qids, picked))
             final_context[img_id] = image_dict
             if i % 10000 == 0:
