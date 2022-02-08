@@ -3,23 +3,12 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from matplotlib import gridspec
 import pandas as pd
-
+from config import imageid_to_path, image_path_to_id, save_json, load_json
 split = 'test2015'
 images_path = f'data/vqa/{split}'
 questions_path = f'data/vqa/questions/v2_OpenEnded_mscoco_{split}_questions.json'
 captions_path = f'data/vqa/expansion/captions/captions_{split}_vqa.json'
 
-
-def imageid_to_path(image_id):
-    n_zeros = 12 - len(image_id)
-    filename = f'COCO_{split}_' + n_zeros*'0' + image_id + '.jpg'
-    return filename
-
-
-def image_path_to_id(image_fullname):
-    img_id = image_fullname.replace(f'COCO_{split}_00', "")
-    img_id = img_id.replace('.jpg', "")
-    return str(int(img_id))
 
 
 def show_image(image_path, text="", title=""):
@@ -40,7 +29,6 @@ def show_image(image_path, text="", title=""):
     img = mpimg.imread(image_path)
     imgplot = ax1.imshow(img)
     # fig.savefig(f"{key}.jpg")
-
 
 with open(questions_path, 'r') as fp:
     questions = json.loads(fp.read())
@@ -84,3 +72,48 @@ for key in keys[:5]:
     show_image(image_path, "\n\n".join(texts))
     plt.show()
 
+    # # Plot first 5 final context + image samples
+    # keys = list(picked_expansions.keys())[:5]
+    # print("Number of smaples", len(keys))
+    # for key in keys:
+    #     filename = imageid_to_path(key)
+    #     image_path = f'{images_path}/{filename}'
+    #     df_image = df[df['image_id'] == key]
+    #     texts = []
+    #     for index, row in df_image.iterrows():
+    #         quest = row['question']
+    #         qid = row['question_id']
+    #         print(picked_expansions[key][qid])
+    #         text = "".join(picked_expansions[key][qid])
+    #         texts.append(quest + "?\n" + text)
+    #     # print(caption_expansions[imageid_to_path(key)])
+    #     # texts.extend(caption_expansions_sentences[filename])
+    #     show_image(image_path, "\n\n".join(texts), title=captions[f'{imageid_to_path(key)}'])
+    #     plt.show()
+    # #
+
+    # def show_image(image_path, text="", title=""):
+    #     """
+    #
+    #     :param image_path:
+    #     :param text:
+    #     :param title:
+    #     :return:
+    #     """
+    #     fig = plt.figure()
+    #     fig.suptitle(title)
+    #     # plt.rcParams["figure.figsize"] = (25, 20)
+    #
+    #     gs = gridspec.GridSpec(1, 2, width_ratios=[1, 2])
+    #     ax1 = plt.subplot(gs[0])
+    #     ax2 = plt.subplot(gs[1])
+    #
+    #     plt.rcParams.update({'font.size': 8})
+    #     plt.xticks([])
+    #     plt.yticks([])
+    #     plt.box(False)
+    #
+    #     ax2.text(0.1, 0.1, text, wrap=True)
+    #     img = mpimg.imread(image_path)
+    #     imgplot = ax1.imshow(img)
+    #     # fig.savefig(f"{key}.jpg")

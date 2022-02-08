@@ -16,39 +16,3 @@ Set paths for images, expansions, method to generate context in config.py
 ### To process expansions
 Run process_expansions.py
 The picked expansions will be saved under outputs/
-
-### To do:
-You can find the "done" items in the drive link
-VQA:
-#### Training set:
-- Captions - done 
-- Caption-expansions - done 
-- Question -expansions - only until 175000
-- Pick expansions using strategy 1 - done
-- Pick expansions using strategy 3 - in progress
-#### Val set:
-- Captions - done
-- Caption - expansions - in progress
-- Question expansions - no
-
-#### Test set:
-- Captions - No
-- Caption - expansions - no
-- Question-expansions - no
-
-VCR:
-#### Training set:
-- Captions - done 
-- Caption-expansions - done 
-- Question -expansions - no
-- Pick expansions using strategy 1 - no
-- Pick expansions using strategy 3 - no
-#### Val set:
-- Captions - done
-- Caption - expansions - no
-- Question expansions - no
-
-#### Test set:
-- Captions - No
-- Caption - expansions - no
-- Question-expansions - no
