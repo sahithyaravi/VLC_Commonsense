@@ -23,11 +23,12 @@ For each question perform semantic search to find e1...ek
 
 """
 method = 'SEMANTIC_SEARCH'  # [1- SEMANTIC_SEARCH, 2-SEMANTIC_SEARCH_QN]
+model_for_qn_search = "text"  # [image or text]
 
 # Configure all paths here
 dataset = 'vqa'
 split = 'train2014'
-data_root = "/Users/sahiravi/Documents/research/VL project/vqa_all_data/data/"
+data_root = "/Users/sahiravi/Documents/research/VL project/vqa_all_data/data"
 images_path = f'{data_root}/vqa/{split}'
 questions_path = f'{data_root}/ok-vqa/OpenEnded_mscoco_{split}_questions.json'
 captions_path = f'{data_root}/vqa/expansion/captions/captions_{split}_vqa.json'
@@ -35,7 +36,7 @@ captions_comet_expansions_path = f'{data_root}/vqa/expansion/caption_expansions/
 questions_comet_expansions_path = ""
 save_sentences_caption_expansions = f'caption_expansion_sentences_{split}_{dataset}.json'
 save_sentences_question_expansions = f'question_expansion_sentences_{split}_{dataset}.json'
-final_expansion_save_path = f'temps/picked_expansions_{method}_{dataset}_{split}_V2.json'
+final_expansion_save_path = f'temps/picked_expansions_{method}_{model_for_qn_search}_{dataset}_{split}_V2.json'
 save_top_caption_expansions = f'temps/top_cap_sentences_{split}_{dataset}.json'
 save_top_qn_expansions = f'temps/top_qn_sentences_{split}_{dataset}.json'
 

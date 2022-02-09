@@ -46,6 +46,24 @@ def save_json(filename, data):
         json.dump(data, fpp)
 
 
+def is_person(word):
+    living_beings_vocab = ["person", "people", "man", "woman", "girl", "boy", "child"
+                           "bird", "cat", "dog", "animal", "insect", "pet"]
+    refdoc = nlp(" ".join(living_beings_vocab))
+    tokens = [token for token in nlp(word) if token.pos_ == "NOUN" or token.pos_ == "PROPN"]
+    avg = 0
+    for token2 in tokens:
+        for token in refdoc:
+            sim = token.similarity(token2)
+            if sim == 1:
+                return True
+            avg += sim
+    avg = avg / len(refdoc)
+    if avg > 0.5:
+        return True
+    return False
+
+
 def get_personx(input_event, use_chunk=True):
     """
 
@@ -78,7 +96,6 @@ def get_personx(input_event, use_chunk=True):
         personx = subj_head[0].text
         # " ".join([t.text for t in list(subj_head.lefts) + [subj_head] + list(subj_head.rights)])
         return personx
-
 
 
 def get_personx_svo(sentence):
@@ -152,3 +169,5 @@ def test_personx():
     s2 = "A desk with a laptop, monitor, keyboard and mouse."
     print(get_personx(s1))
     print(get_personx(s2))
+
+

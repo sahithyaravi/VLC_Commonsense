@@ -9,10 +9,21 @@ from tqdm import tqdm
 
 from config import *
 from semantic_search import symmetric_search, image_symmetric_search
-from utils import get_personx, get_personx_svo, load_json, save_json, imageid_to_path, image_path_to_id
+from utils import get_personx, get_personx_svo, load_json, save_json, imageid_to_path, image_path_to_id, is_person
 
 os.environ["TOKENIZERS_PARALLELISM"] = "True"
 relation_map = load_json("relation_map.json")
+atomic_relations = ["oEffect", "oReact",
+                    "oWant",
+                    "xAttr",
+                    "xEffect",
+                    "xIntent",
+                    "xNeed",
+                    "xReact",
+                    "xReason",
+                    "xWant"]
+
+excluded_relations = ["causes", "xReason"]
 
 
 def convert_job(sentences, key, exp, srl):
@@ -32,19 +43,23 @@ def convert_job(sentences, key, exp, srl):
     else:
         personx = get_personx(sentences[key])  # the sentence expanded by comet
     for relation, beams in exp.items():
-        top_context.append(relation_map[relation.lower()].replace("{0}", personx).replace("{1}", beams[0])+".")
-        for beam in beams:
-            if beam != " none" and beam != "   ":
-                source = personx
-                target = beam.lstrip()
-                sent = relation_map[relation.lower()].replace("{0}", source).replace("{1}", target)+"."
-                context.append(sent.capitalize())
+        if relation not in excluded_relations:
+            top_context.append(relation_map[relation.lower()].replace("{0}", personx).replace("{1}", beams[0])+".")
+            for beam in beams:
+                if beam != " none" and beam != "   ":
+                    source = personx
+                    target = beam.lstrip()
+                    if relation in atomic_relations and not is_person(source):
+                        source = "person"
+                    sent = relation_map[relation.lower()].replace("{0}", source).replace("{1}", target)+"."
+                    context.append(sent.capitalize())
+
     return context, top_context
 
 
 def expansions_to_sentences(expansions, sentences, srl=False, parallel=False):
     print("Converting expansions to sentences:")
-    keys = list(expansions.keys())[:5]
+    keys = list(expansions.keys())
     if parallel:
         contexts, top_contexts = Parallel(n_jobs=-1)(
             delayed(convert_job)(sentences, keys[i], expansions[keys[i]], srl)for i in tqdm(range(len(keys))))
@@ -57,11 +72,11 @@ def expansions_to_sentences(expansions, sentences, srl=False, parallel=False):
             top_contexts.append(top_context)
     all_contexts = dict(zip(keys, contexts))
     all_top_contexts = dict(zip(keys, top_contexts))
-    print(all_contexts)
+
     return all_contexts, all_top_contexts
 
 
-def search_caption_expansions(caption_expanded, questions_df, parallel=True):
+def search_caption_expansions(caption_expanded, questions_df, parallel=False):
     def semantic_search_job(key, context, questions_df):
         out = {}
         img_id = image_path_to_id(key)
@@ -174,35 +189,35 @@ if __name__ == '__main__':
                                                                                                  captions)
         save_json(save_sentences_caption_expansions, caption_expansions_sentences)
         save_json(save_top_caption_expansions, top_caption_expansions_sentences)
-
-    # Pick final context using chosen method
-    if method == "SEMANTIC_SEARCH":
-        # This method only uses captions and picks a relevant caption expansion based on qn
-        picked_expansions = search_caption_expansions(caption_expansions_sentences, df)
-
-    else:
-        # These two methods use both qn and caption expansions
-        print("Using quetion expansions")
-        question_expansions = load_json(questions_comet_expansions_path)
-        if os.path.exists(save_sentences_question_expansions):
-            question_expansions_sentences = load_json(save_sentences_caption_expansions)
-        else:
-            question_sentences = dict(zip(df.question_id, df.question))
-            question_expansions_sentences, top_question_expansions_sentences = expansions_to_sentences(
-                question_expansions, question_sentences, srl=False)
-            save_json(save_sentences_question_expansions, question_expansions_sentences)
-            save_json(save_sentences_question_expansions, top_question_expansions_sentences)
-
-        if method == "SEMANTIC_SEARCH_QN":
-            picked_expansions = search_caption_qn_expansions(question_expansions_sentences,
-                                                             caption_expansions_sentences, df)
-        elif method == "TOP":
-            if os.path.exists(save_top_qn_expansions):
-                top_question_expansions_sentences = load_json(save_top_qn_expansions)
-            if os.path.exists(save_top_caption_expansions):
-                top_caption_expansions_sentences = load_json(save_top_caption_expansions)
-
-            picked_expansions = pick_expansions_method_top(top_question_expansions_sentences,
-                                                           top_caption_expansions_sentences,
-                                                           df)
-    save_json(final_expansion_save_path, picked_expansions)
+    #
+    # # Pick final context using chosen method
+    # if method == "SEMANTIC_SEARCH":
+    #     # This method only uses captions and picks a relevant caption expansion based on qn
+    #     picked_expansions = search_caption_expansions(caption_expansions_sentences, df)
+    #
+    # else:
+    #     # These two methods use both qn and caption expansions
+    #     print("Using quetion expansions")
+    #     question_expansions = load_json(questions_comet_expansions_path)
+    #     if os.path.exists(save_sentences_question_expansions):
+    #         question_expansions_sentences = load_json(save_sentences_caption_expansions)
+    #     else:
+    #         question_sentences = dict(zip(df.question_id, df.question))
+    #         question_expansions_sentences, top_question_expansions_sentences = expansions_to_sentences(
+    #             question_expansions, question_sentences, srl=False)
+    #         save_json(save_sentences_question_expansions, question_expansions_sentences)
+    #         save_json(save_sentences_question_expansions, top_question_expansions_sentences)
+    #
+    #     if method == "SEMANTIC_SEARCH_QN":
+    #         picked_expansions = search_caption_qn_expansions(question_expansions_sentences,
+    #                                                          caption_expansions_sentences, df)
+    #     elif method == "TOP":
+    #         if os.path.exists(save_top_qn_expansions):
+    #             top_question_expansions_sentences = load_json(save_top_qn_expansions)
+    #         if os.path.exists(save_top_caption_expansions):
+    #             top_caption_expansions_sentences = load_json(save_top_caption_expansions)
+    #
+    #         picked_expansions = pick_expansions_method_top(top_question_expansions_sentences,
+    #                                                        top_caption_expansions_sentences,
+    #                                                        df)
+    # save_json(final_expansion_save_path, picked_expansions)
