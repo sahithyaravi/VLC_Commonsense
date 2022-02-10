@@ -1,6 +1,6 @@
 import json
 import re
-
+import pandas as pd
 import spacy
 import textacy
 
@@ -171,3 +171,10 @@ def test_personx():
     print(get_personx(s2))
 
 
+def qdict_to_df(qdict):
+    df = pd.DataFrame(qdict['questions'])
+    df['image_id'] = df['image_id'].astype(str)
+    df['question_id'] = df['question_id'].astype(str)
+    paths = [imageid_to_path(k) for k in df["image_id"].values]
+    df["image_path"] = paths
+    return df

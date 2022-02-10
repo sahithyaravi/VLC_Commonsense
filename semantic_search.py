@@ -4,7 +4,6 @@ from sentence_transformers import SentenceTransformer, util
 
 from config import *
 from plot_picked_expansions import show_image
-from utils import imageid_to_path
 
 if torch.cuda.is_available():
     print("######## USING GPU ###############")
@@ -14,18 +13,19 @@ else:
 
 # Define image and sentence embedder
 image_model = "clip-ViT-B-32"
-asymmetric_search_model = "msmarco-distilbert-base-v4"
+semantic_search_model = "all-mpnet-base-v2"
 image_embedder = SentenceTransformer(image_model, device=device)
 if model_for_qn_search == "text":
-    sentence_embedder = SentenceTransformer(asymmetric_search_model, device=device)
+    sentence_embedder = SentenceTransformer(semantic_search_model, device=device)
 else:
     sentence_embedder = image_embedder
 
 
-def symmetric_search(queries, corpus, k=15, threshold=0, return_as_lists=False):
+def symmetric_search(queries, corpus, k=15, threshold=0.2):
     corpus_embeddings = sentence_embedder.encode(corpus, convert_to_tensor=True)
     top_k = min(k, len(corpus))
     result = []
+    result_as_list = []
     for query in queries:
         query_embedding = sentence_embedder.encode(query, convert_to_tensor=True,
                                                    batch_size=max(128, len(corpus)), device=device)
@@ -36,17 +36,16 @@ def symmetric_search(queries, corpus, k=15, threshold=0, return_as_lists=False):
         for score, idx in zip(top_results[0], top_results[1]):
             if score > threshold and sent not in result:
                 sent.append(corpus[idx])
-        if return_as_lists:
-            result.append(sent)
-        else:
-            result.append(" ".join(sent))
-    return result
+
+        result_as_list.append(sent)
+        result.append(" ".join(sent))
+    return result, result_as_list
 
 
 # Search that returns expansions closest to the query as well to the image & query intersection
-def image_symmetric_search(image_id, queries, corpus, k=15, threshold=0):
-    im_path = images_path + '/' + imageid_to_path(image_id)
-    show_image(im_path)
+def image_symmetric_search(img_path, queries, corpus, k=15, threshold=0):
+    im_path = images_path + img_path
+    # show_image(im_path)
     corpus_embeddings = image_embedder.encode(corpus, convert_to_tensor=True)
     image_embeddings = image_embedder.encode(Image.open(im_path), convert_to_tensor=True)
     top_k = min(k*2, len(corpus))
@@ -60,10 +59,10 @@ def image_symmetric_search(image_id, queries, corpus, k=15, threshold=0):
             im_result.append(corpus[idx])
 
     # call question based semantic search - embedded using asymmetric model
-    qn_results = symmetric_search(queries, corpus, k=100, return_as_lists=True)
-    intersection_results = [set(r) & set(im_result) for r in qn_results]
-    final_qn_results = [r[:k] for r in qn_results]
-    return {'q': final_qn_results, 'qi': intersection_results}
+    qn_res, qn_res_list = symmetric_search(queries, corpus, k=k)
+    # print(len(queries), len(qn_res_list), len(qn_res))
+    intersection_results = [" ".join(set(r) & set(im_result)) for r in qn_res_list]
+    return intersection_results, qn_res
 
 
 if __name__ == '__main__':
