@@ -9,7 +9,7 @@ from config import *
 from utils import imageid_to_path, load_json, save_json
 
 
-def show_image(image_path, text="", title=""):
+def show_image(image_path, text="", title="", savefig_path="out.png"):
     fig = plt.figure()
     fig.suptitle(title)
     # plt.rcParams["figure.figsize"] = (25, 20)
@@ -26,7 +26,8 @@ def show_image(image_path, text="", title=""):
     img = mpimg.imread(image_path)
     imgplot = ax1.imshow(img)
     # plt.show()
-    # fig.savefig(f"{key}.jpg")
+    fig.savefig(savefig_path)
+
 
 
 if __name__ == '__main__':

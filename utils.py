@@ -178,3 +178,17 @@ def qdict_to_df(qdict):
     paths = [imageid_to_path(k) for k in df["image_id"].values]
     df["image_path"] = paths
     return df
+
+
+def lexical_overlap(vocab, s1):
+    if not vocab or not s1:
+        return 0
+    w1 = s1.split()
+
+    for s2 in vocab:
+        w2 = s2.split()
+        overlap = len(set(w1) & set(w2))/len(w1)
+        if overlap > 0.6:
+            return True
+    return False
+

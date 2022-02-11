@@ -1,6 +1,6 @@
 import json
 import os
-import re
+import string
 
 import pandas as pd
 
@@ -9,11 +9,12 @@ from tqdm import tqdm
 
 from config import *
 from semantic_search import symmetric_search, image_symmetric_search
-from utils import get_personx,load_json, save_json, image_path_to_id, is_person, qdict_to_df
+from utils import get_personx, load_json, save_json, image_path_to_id, is_person, qdict_to_df, lexical_overlap
 
 os.environ["TOKENIZERS_PARALLELISM"] = "True"
 relation_map = load_json("relation_map.json")
-atomic_relations = ["oEffect", "oReact",
+atomic_relations = ["oEffect",
+                    "oReact",
                     "oWant",
                     "xAttr",
                     "xEffect",
@@ -23,7 +24,7 @@ atomic_relations = ["oEffect", "oReact",
                     "xReason",
                     "xWant"]
 
-excluded_relations = ["causes", "xReason"]
+excluded_relations = ["causes", "xReason", "isFilledBy", "HasPainCharacter", "HasPainIntensity" ] # exclude some relations that are nonsense
 
 
 def convert_job(sentences, key, exp, srl):
@@ -37,6 +38,7 @@ def convert_job(sentences, key, exp, srl):
     """
     context = []
     top_context = []
+    seen = set()
 
     if srl:
         personx = get_personx_srl(sentences[key])
@@ -46,13 +48,14 @@ def convert_job(sentences, key, exp, srl):
         if relation not in excluded_relations:
             top_context.append(relation_map[relation.lower()].replace("{0}", personx).replace("{1}", beams[0])+".")
             for beam in beams:
-                if beam != " none" and beam != "   ":
-                    source = personx
-                    target = beam.lstrip()
-                    if relation in atomic_relations and not is_person(source):
-                        source = "person"
+                source = personx
+                target = beam.lstrip().translate(str.maketrans('', '', string.punctuation))
+                if relation in atomic_relations and not is_person(source):
+                    source = "person"
+                if beam and beam != "none" and target not in seen and not lexical_overlap(seen, target):
                     sent = relation_map[relation.lower()].replace("{0}", source).replace("{1}", target)+"."
                     context.append(sent.capitalize())
+                    seen.add(target)
 
     return [context, top_context]
 
@@ -79,6 +82,7 @@ def expansions_to_sentences(expansions, sentences, save_path, topk_path, srl=Fal
         all_top_contexts = dict(zip(keys, top_contexts))
         save_json(save_path, all_contexts)
         save_json(topk_path, all_top_contexts)
+    print(all_contexts)
     return all_contexts, all_top_contexts
 
 
@@ -194,27 +198,6 @@ if __name__ == '__main__':
     logger.info("Converting caption expansions to sentences")
 
     caption_expansions_sentences, top_caption_expansions_sentences = expansions_to_sentences(caption_expansions,
-                                captions, caption_expansion_sentences_path, topk_caption_path, parallel=False)
+                                captions, caption_expansion_sentences_path, topk_caption_path, parallel=True)
 
-    logger.info(f"Starting to pick final expansions using {method}:")
-    if method == "Sem_V1":
-        out, out1 = search_caption_expansions(caption_expansions_sentences, df, parallel=False)
 
-    elif method == "Sem_V2":
-        question_expansions = load_json(questions_comet_expansions_path)
-        question_expansions_sentences = expansions_to_sentences(question_expansions,
-                                questions, question_expansion_sentences_path, topk_qn_path, parallel=False)
-        out, out1 = search_caption_qn_expansions(question_expansions_sentences,
-                                                             caption_expansions_sentences, df)
-    else:
-        logger.warning("You are not using semantic search. Picking using topk expansions")
-        if os.path.exists(topk_qn_path):
-            top_question_expansions_sentences = load_json(topk_qn_path)
-        if os.path.exists(topk_caption_path):
-            top_caption_expansions_sentences = load_json(topk_caption_path)
-
-        out, out1 = pick_expansions_method_top(top_question_expansions_sentences,
-                                                           top_caption_expansions_sentences,
-                                                           df)
-    save_json(final_expansion_save_path + "I.json", out)
-    save_json(final_expansion_save_path + ".json", out1)
