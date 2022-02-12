@@ -29,7 +29,6 @@ def show_image(image_path, text="", title="", savefig_path="out.png"):
     fig.savefig(savefig_path)
 
 
-
 if __name__ == '__main__':
     questions = load_json(questions_path)
     captions = load_json(captions_path)
@@ -37,12 +36,12 @@ if __name__ == '__main__':
     df = pd.DataFrame(questions['questions'])
     df['image_id'] = df['image_id'].astype(str)
     df['question_id'] = df['question_id'].astype(str)
-    picked_expansions = load_json(final_expansion_save_path +"I.json")
+    picked_expansions = load_json(final_expansion_save_path + ".json")
     print(len(picked_expansions))
     keys = list(picked_expansions.keys())
     print("Number of smaples", len(keys))
 
-    for key in keys[:5]:
+    for key in keys[:25]:
         filename = imageid_to_path(key)
         image_path = f'{images_path}/{filename}'
         print(key)

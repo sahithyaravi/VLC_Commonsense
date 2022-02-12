@@ -97,19 +97,17 @@ def search_caption_expansions(caption_expanded, questions_df, parallel=False):
             # picked, _ = symmetric_search(queries, context, k=10, threshold=0.01)
             img_text, text_only = image_symmetric_search(img_path, queries, context, k=15, threshold=0)
             picked_img = dict(zip(qids, img_text))
-            picked_text = dict(zip(qids, picked_text))
+            picked_text = dict(zip(qids, text_only))
         return picked_img, picked_text
 
     # we only need to process those images that have questions:
     question_image_ids = set(questions_df["image_path"].unique())
     caption_keys = set(caption_expanded.keys())
     img_paths = list(question_image_ids & caption_keys)
-    img_paths.sort()
-    img_paths = img_paths[:50]
     img_ids = [image_path_to_id(key) for key in img_paths]
 
     if parallel:
-        final_list_img, final_list = zip(*Parallel(n_jobs=-1)(
+        final_list_img, final_list = zip(*Parallel(n_jobs=4)(
             delayed(semantic_search_job)(img_paths[i], caption_expanded[img_paths[i]], questions_df) for i in tqdm(range(len(img_paths)))))
         final_context = dict(zip(img_ids, final_list))
         final_context_img = dict(zip(img_ids, final_list_img))

@@ -13,7 +13,7 @@ else:
 
 # Define image and sentence embedder
 image_model = "clip-ViT-B-32"
-semantic_search_model = "all-mpnet-base-v2"
+semantic_search_model = "multi-qa-distilbert-cos-v1"
 image_embedder = SentenceTransformer(image_model, device=device)
 if model_for_qn_search == "text":
     sentence_embedder = SentenceTransformer(semantic_search_model, device=device)
@@ -21,7 +21,7 @@ else:
     sentence_embedder = image_embedder
 
 
-def symmetric_search(queries, corpus, k=15, threshold=0.2):
+def symmetric_search(queries, corpus, k=15, threshold=0.1):
     corpus_embeddings = sentence_embedder.encode(corpus, convert_to_tensor=True)
     top_k = min(k, len(corpus))
     result = []
@@ -48,7 +48,7 @@ def image_symmetric_search(img_path, queries, corpus, k=15, threshold=0):
     # show_image(im_path)
     corpus_embeddings = image_embedder.encode(corpus, convert_to_tensor=True)
     image_embeddings = image_embedder.encode(Image.open(im_path), convert_to_tensor=True)
-    top_k = min(k*2, len(corpus))
+    top_k = min(k*3, len(corpus))
 
     # Find the closest 15 sentneces of the corpus to the image
     im_result = []
