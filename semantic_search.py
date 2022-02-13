@@ -45,18 +45,20 @@ def symmetric_search(queries, corpus, k=15, threshold=0.1):
 # Search that returns expansions closest to the query as well to the image & query intersection
 def image_symmetric_search(img_path, queries, corpus, k=15, threshold=0):
     im_path = images_path + img_path
-    # show_image(im_path)
+    im = Image.open(im_path)
     corpus_embeddings = image_embedder.encode(corpus, convert_to_tensor=True)
-    image_embeddings = image_embedder.encode(Image.open(im_path), convert_to_tensor=True)
-    top_k = min(k*3, len(corpus))
-
-    # Find the closest 15 sentneces of the corpus to the image
-    im_result = []
-    cos_scores = util.pytorch_cos_sim(image_embeddings, corpus_embeddings)[0]
-    top_results = torch.topk(cos_scores, k=top_k)
-    for score, idx in zip(top_results[0], top_results[1]):
-        if score > threshold and im_result not in im_result:
-            im_result.append(corpus[idx])
+    try:
+        image_embeddings = image_embedder.encode(im, convert_to_tensor=True)
+        # Find the closest 15 sentneces of the corpus to the image
+        im_result = []
+        top_k = min(k * 3, len(corpus))
+        cos_scores = util.pytorch_cos_sim(image_embeddings, corpus_embeddings)[0]
+        top_results = torch.topk(cos_scores, k=top_k)
+        for score, idx in zip(top_results[0], top_results[1]):
+            if score > threshold and im_result not in im_result:
+                im_result.append(corpus[idx])
+    except ValueError:
+        im_result = []
 
     # call question based semantic search - embedded using asymmetric model
     qn_res, qn_res_list = symmetric_search(queries, corpus, k=k)

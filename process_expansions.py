@@ -95,7 +95,7 @@ def search_caption_expansions(caption_expanded, questions_df, parallel=False):
             queries = list(df_img['question'].values)
             qids = list(df_img['question_id'].values)
             # picked, _ = symmetric_search(queries, context, k=10, threshold=0.01)
-            img_text, text_only = image_symmetric_search(img_path, queries, context, k=15, threshold=0)
+            img_text, text_only = image_symmetric_search(img_path, queries, contextcontext, k=15, threshold=0)
             picked_img = dict(zip(qids, img_text))
             picked_text = dict(zip(qids, text_only))
         return picked_img, picked_text
@@ -202,7 +202,7 @@ if __name__ == '__main__':
 
     logger.info(f"Starting to pick final expansions using {method}:")
     if method == "Sem_V1":
-        out, out1 = search_caption_expansions(caption_expansions_sentences, df, parallel=False)
+        out, out1 = search_caption_expansions(caption_expansions_sentences, df, parallel=True)
 
     elif method == "Sem_V2":
         question_expansions = load_json(questions_comet_expansions_path)
