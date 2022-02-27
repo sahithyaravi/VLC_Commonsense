@@ -13,7 +13,7 @@ else:
 
 # Define image and sentence embedder
 image_model = "clip-ViT-B-32"
-semantic_search_model = "multi-qa-distilbert-cos-v1"
+semantic_search_model = "multi-qa-mpnet-base-dot-v1"
 image_embedder = SentenceTransformer(image_model, device=device)
 if model_for_qn_search == "text":
     sentence_embedder = SentenceTransformer(semantic_search_model, device=device)
@@ -29,8 +29,8 @@ def symmetric_search(queries, corpus, k=15, threshold=0.2):
     for query in queries:
         query_embedding = sentence_embedder.encode(query, convert_to_tensor=True,
                                                    batch_size=max(128, len(corpus)), device=device)
-        cos_scores = util.pytorch_cos_sim(query_embedding, corpus_embeddings)[0]
-        # dot_scores = util.dot_score(query_embedding, corpus_embeddings)[0].cpu()
+        #cos_scores = util.pytorch_cos_sim(query_embedding, corpus_embeddings)[0]
+        cos_scores = util.dot_score(query_embedding, corpus_embeddings)[0].cpu()
         top_results = torch.topk(cos_scores, k=top_k)
         sent = []
         for score, idx in zip(top_results[0], top_results[1]):
