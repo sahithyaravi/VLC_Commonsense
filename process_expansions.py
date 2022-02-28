@@ -52,7 +52,7 @@ def convert_job(sentences, key, exp, srl):
                 target = beam.lstrip().translate(str.maketrans('', '', string.punctuation))
                 if relation in atomic_relations and not is_person(source):
                     source = "person"
-                if beam and beam != "none" and target not in seen and not lexical_overlap(seen, target):
+                if target and target != "none" and target not in seen and not lexical_overlap(seen, target):
                     sent = relation_map[relation.lower()].replace("{0}", source).replace("{1}", target)+"."
                     context.append(sent.capitalize())
                     seen.add(target)
@@ -149,8 +149,8 @@ def search_caption_qn_expansions(qn_expansions_sentences, caption_expanded, ques
             qids = list(df_img['question_id'].values)
             picked_contexts = []
             for qn, idx in zip(queries, qids):
-                picked_context_qn, _ = symmetric_search([qn], qn_expansions_sentences[idx], k=5, threshold=0.2)
-                picked_context_caption, _ = symmetric_search([qn], caption_expanded[img_paths[i]], k=5, threshold=0)
+                picked_context_qn, _ = symmetric_search([qn], qn_expansions_sentences[idx], k=3, threshold=0.2)
+                picked_context_caption, _ = symmetric_search([qn], caption_expanded[img_paths[i]], k=3, threshold=0)
                 picked_text_per_question = [s1+s2 for s1,s2 in zip(picked_context_qn, picked_context_caption)][0]
                 picked_contexts.append(picked_text_per_question)
             image_dict = dict(zip(qids, picked_contexts))
