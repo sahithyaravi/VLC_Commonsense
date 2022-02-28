@@ -41,7 +41,7 @@ if __name__ == '__main__':
     keys = list(picked_expansions.keys())
     print("Number of smaples", len(keys))
 
-    for key in keys[:25]:
+    for key in keys[40:50]:
         filename = imageid_to_path(key)
         image_path = f'{images_path}/{filename}'
         print(key)

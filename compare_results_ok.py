@@ -4,8 +4,9 @@ import random
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
-from utils import load_json
+from utils import load_json, image_path_to_id, imageid_to_path
 from plot_picked_expansions import show_image
+from config import *
 
 
 def get_count(res, answers):
@@ -14,24 +15,27 @@ def get_count(res, answers):
 
 
 if __name__ == '__main__':
-    annotations = load_json('data/ok-vqa/mscoco_val2014_annotations.json')
-    questions = load_json('data/ok-vqa/OpenEnded_mscoco_val2014_questions.json')
-    results1 = load_json('compare/results_okvqa/19_semv1_okvqa_val2014.json')
-    results2 = load_json('compare/results_okvqa/19_semv2_okvqa_val2014.json')
-    captions = load_json('data/vqa/expansion/captions/captions_val2014_vqa.json')
-    expansion = load_json('outputs/both-okvqa/picked_expansions_SEMANTIC_SEARCH_QN_ok-vqa_val2014_V2.json')
+    # check if all the paths provided are correct:
+    annotations = load_json(f'{data_root}/ok-vqa/mscoco_val2014_annotations.json')
+    questions = load_json(f'{data_root}/ok-vqa/OpenEnded_mscoco_val2014_questions.json')
+    results1 = load_json('final_outputs/results/19_captions_okvqa_val2014.json')
+    results2 = load_json('final_outputs/results/19_semv1_okvqa_val2014.json')
+    captions = load_json(f'{data_root}/vqa/expansion/captions/captions_val2014_vqa.json')
+    expansion = load_json('final_outputs/semv1_okvqa/sem1.3_okvqa_val2014.json')
 
     ans_list = annotations['annotations']
     q_list = questions['questions']
 
+    # get all difference bewtween results
     diffs = []
     total = len(results1)
     for i in range(len(results1)):
         if results1[i]['answer'] != results2[i]['answer']:
             diffs.append(i)
 
-    random.seed(350)
-    for rand in range(50):
+    # random 50 indices
+    random.seed(10)
+    for rand in range(100):
         rand_idx = random.randint(0, len(diffs) - 1)
         rand_idx = diffs[rand_idx]
         # print(results1[rand_idx])
@@ -59,12 +63,12 @@ if __name__ == '__main__':
         res['image_id'] = image_id
 
         image_id = str(image_id)
-        res['expansion'] = " ".join(expansion[image_id][str(q_id)])
+        res['expansion'] = ",". join(expansion[image_id][str(q_id)].split(".")[:6])
 
         # image_id_to_path
         for k in range(0, 12 - len(image_id)):
             image_id = '0' + image_id
-        img_path = "COCO_val2014_" + image_id + ".jpg"
+        img_path = imageid_to_path(image_id)
         caption = captions[img_path]
         # print(caption)
 
@@ -90,13 +94,13 @@ if __name__ == '__main__':
             res['state'] = 'neutral'
 
         # print(res)
-        if res['state'] == 'bad':
-            image_path = "data/vqa/val2014/" + res['image_path']
+        if res['state'] == 'good':
+            image_path = f"{data_root}/vqa/val2014/" + res['image_path']
             title = res['question']
-            text = res['caption'] + '\n' + res['expansion'] + '\n\nCaption+sem V1 Answer: ' + res[
-                'answer_1'] + '\n Caption+semV2 Answer: ' + res['answer_2'] + '\n\n GT Answers: ' + ", ".join(
+            text = res['caption'] + '\n' + res['expansion'] + '\n\nCaption Answer: ' + res[
+                'answer_1'] + '\n Caption+semV1 Answer: ' + res['answer_2'] + '\n\n GT Answers: ' + ", ".join(
                 res["possible_answers"])
-            save_name = res['state'] + "-" + str(res['question_id'])
+            save_name = 'final_outputs/images/' + res['state'] + "-" + str(res['question_id'])
             show_image(image_path, text, title, save_name)
 
     print(len(diffs))
