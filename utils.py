@@ -24,8 +24,11 @@ exclude_list = ['what is', 'what are', 'where', 'where is', 'where are', 'what',
 
 # helper functions
 def imageid_to_path(image_id):
-    n_zeros = 12 - len(image_id)
-    filename = f'COCO_{split}_' + n_zeros * '0' + image_id + '.jpg'
+    n_zeros = 12 - len(str(image_id))
+    if dataset == "aokvqa":
+        filename = f'' + n_zeros * '0' + str(image_id) + '.jpg'
+    else:
+        filename = f'COCO_{split}_' + n_zeros * '0' + image_id + '.jpg'
     return filename
 
 
@@ -47,20 +50,21 @@ def save_json(filename, data):
 
 
 def is_person(word):
-    living_beings_vocab = ["person", "people", "man", "woman", "girl", "boy", "child"
-                           "bird", "cat", "dog", "animal", "insect", "pet"]
-    refdoc = nlp(" ".join(living_beings_vocab))
-    tokens = [token for token in nlp(word) if token.pos_ == "NOUN" or token.pos_ == "PROPN"]
-    avg = 0
-    for token2 in tokens:
-        for token in refdoc:
-            sim = token.similarity(token2)
-            if sim == 1:
-                return True
-            avg += sim
-    avg = avg / len(refdoc)
-    if avg > 0.5:
-        return True
+    if word:
+        living_beings_vocab = ["person", "people", "man", "woman", "girl", "boy", "child"
+                            "bird", "cat", "dog", "animal", "insect", "pet"]
+        refdoc = nlp(" ".join(living_beings_vocab))
+        tokens = [token for token in nlp(word) if token.pos_ == "NOUN" or token.pos_ == "PROPN"]
+        avg = 0
+        for token2 in tokens:
+            for token in refdoc:
+                sim = token.similarity(token2)
+                if sim == 1:
+                    return True
+                avg += sim
+        avg = avg / len(refdoc)
+        if avg > 0.5:
+            return True
     return False
 
 
@@ -171,12 +175,24 @@ def test_personx():
     print(get_personx(s2))
 
 
-def qdict_to_df(qdict):
-    df = pd.DataFrame(qdict['questions'])
-    df['image_id'] = df['image_id'].astype(str)
-    df['question_id'] = df['question_id'].astype(str)
-    paths = [imageid_to_path(k) for k in df["image_id"].values]
-    df["image_path"] = paths
+def qdict_to_df(qdict, dataset):
+    if dataset == "fvqa":
+        df = pd.DataFrame.from_dict(qdict, orient='index')
+        df['question_id'] = df['question_id'].astype(str)
+        df["image_path"] = df["img_file"].astype(str)
+    else:
+        if type(qdict) == list:
+            df = pd.DataFrame(qdict)
+            if "image_path" not in df.columns:
+                ids = list(df["image_id"].values)
+                df["image_path"] = [imageid_to_path(i) for i in ids]
+        else:
+            df = pd.DataFrame(qdict['questions'])
+            df['image_id'] = df['image_id'].astype(str)
+            df['question_id'] = df['question_id'].astype(str)
+            paths = [imageid_to_path(k) for k in df["image_id"].values]
+            df["image_path"] = paths
+
     return df
 
 

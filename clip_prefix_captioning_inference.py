@@ -31,9 +31,45 @@ TN = Optional[T]
 TNS = Union[Tuple[TN, ...], List[TN]]
 TSN = Optional[TS]
 TA = Union[T, ARRAY]
-
 D = torch.device
 CPU = torch.device('cpu')
+
+def load_dataset(dataset, split):
+    # configure path to image files
+    if dataset == "vqa":
+        sample_size = 8000  # number of images to caption
+        path_to_files = '/ubc/cs/research/nlp/sahiravi/datasets/test2015'
+        files = os.listdir('/ubc/cs/research/nlp/sahiravi/datasets/test2015')
+        # files = random.sample(files, sample_size)
+    elif dataset == "fvqa":
+        path_to_files = '/ubc/cs/research/nlp/sahiravi/datasets/fvqa/new_dataset_release/images'
+        files = os.listdir(path_to_files)
+    elif dataset == "vcr":
+        path_to_files = 'scratch/sahithya/vlcbert/vcr/vcr1images'
+        path_to_annotations = 'scratch/sahithya/vlcbert/vcr/'
+        data = []
+        with open(path_to_annotations + f'{split}.jsonl', 'r') as fp:
+            for line in fp:
+                data.append(json.loads(line))
+
+        df = pd.DataFrame(data)
+        print(df.head())
+        files = list(df['img_fn'].values)
+    elif dataset == "aokvqa":
+        path_to_files = f'/ubc/cs/research/nlp/sahiravi/datasets/coco/{split}2017'
+        files = os.listdir(path_to_files)
+    else:
+        path_to_files = '/ubc/cs/research/nlp/sahiravi/datasets/fvqa/new_dataset_release/images'
+        path_to_annotations = '/home/sahiravi/scratch/'
+        data = []
+        with open(path_to_annotations + f'{split}.jsonl', 'r') as fp:
+            for line in fp:
+                data.append(json.loads(line))
+
+        df = pd.DataFrame(data)
+        print(df.head())
+        files = list(df['img_fn'].values)
+    return files, path_to_files
 
 
 def get_device(device_id: int) -> D:
@@ -44,7 +80,6 @@ def get_device(device_id: int) -> D:
 
 
 CUDA = get_device
-
 current_directory = os.getcwd()
 save_path = os.path.join(os.path.dirname(current_directory), "pretrained_models")
 os.makedirs(save_path, exist_ok=True)
@@ -239,81 +274,47 @@ def generate2(
 
 pretrained_model = 'COCO'
 model_path = 'coco_weights.pt'
-is_gpu = True
-device = CUDA(0) if is_gpu else "cpu"
+is_gpu = False
+device = 'cuda' if is_gpu else "cpu"
 clip_model, preprocess = clip.load("ViT-B/32", device=device, jit=False)
 tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
 
 # @title Load model weights
-
-
 prefix_length = 10
-
 model = ClipCaptionModel(prefix_length)
-
 model.load_state_dict(torch.load(model_path, map_location=CPU))
 
-model = model.eval()
-device = CUDA(0) if is_gpu else "cpu"
-model = model.to(device)
-dataset = "vqa"  # ["vqa", "vcr"]
-split = 'test'
-
-if dataset == "vqa":
-
-    sample_size = 8000  # number of images to caption
-    path_to_files = '/ubc/cs/research/nlp/sahiravi/datasets/test2015'
-    files = os.listdir('/ubc/cs/research/nlp/sahiravi/datasets/test2015')
-    # files = random.sample(files, sample_size)
-
-
-else:
-
-    path_to_files = '/ubc/cs/research/nlp/sahiravi/datasets/test2015'
-    path_to_annotations = '/home/sahiravi/scratch/'
-    data = []
-    with open(path_to_annotations + f'{split}.jsonl', 'r') as fp:
-        for line in fp:
-            data.append(json.loads(line))
-
-    df = pd.DataFrame(data)
-    print(df.head())
-    files = list(df['img_fn'].values)
-
-
 if __name__ == '__main__':
-    # @title Inference
-    inferences = {}
-    ind = 0
-    for filename in files:
-        ind += 1
-        IMG_PATH = f'{path_to_files}/{filename}'
+    model = model.eval()
+    model = model.to(device)
+    dataset = "vcr"  # ["vqa", "vcr", "okvqa"]
+    splits = ['train', 'val', 'test']
+    for split in splits:
+        files, path_to_files = load_dataset(dataset, split)
+        inferences = {}
+        for i in tqdm(range(len(files))):
+            filename = files[i]
+            IMG_PATH = f'{path_to_files}/{filename}'
+            use_beam_search = False 
+            image = io.imread(IMG_PATH)
+            pil_image = PIL.Image.fromarray(image)  
+            image = preprocess(pil_image).unsqueeze(0).to(device)
+            with torch.no_grad():
+                # if type(model) is ClipCaptionE2E:
+                #     prefix_embed = model.forward_image(image)
+                # else:
+                prefix = clip_model.encode_image(image).to(device, dtype=torch.float32)
+                prefix_embed = model.clip_project(prefix).reshape(1, prefix_length, -1)
+            if use_beam_search:
+                generated_text_prefix = generate_beam(model, tokenizer, embed=prefix_embed)[0]
+            else:
+                generated_text_prefix = generate2(model, tokenizer, embed=prefix_embed)
 
-        use_beam_search = False  # @param {type:"boolean"}
+            # print('\n')
+            # print(generated_text_prefix)
+            inferences[filename] = generated_text_prefix
 
-        image = io.imread(IMG_PATH)
-        pil_image = PIL.Image.fromarray(image)
-        # pil_img = Image(filename=UPLOADED_FILE)
-
-        image = preprocess(pil_image).unsqueeze(0).to(device)
-        with torch.no_grad():
-            # if type(model) is ClipCaptionE2E:
-            #     prefix_embed = model.forward_image(image)
-            # else:
-            prefix = clip_model.encode_image(image).to(device, dtype=torch.float32)
-            prefix_embed = model.clip_project(prefix).reshape(1, prefix_length, -1)
-        if use_beam_search:
-            generated_text_prefix = generate_beam(model, tokenizer, embed=prefix_embed)[0]
-        else:
-            generated_text_prefix = generate2(model, tokenizer, embed=prefix_embed)
-
-        print('\n')
-        print(generated_text_prefix)
-        inferences[filename] = generated_text_prefix
-        if ind % 1000 == 0:
-            with open(f'captions_{split}_{ind}.json', 'w') as fp:
-                json.dump(inferences, fp)
-
-    with open(f'captions_{split}_{dataset}.json', 'w') as fp:
-        json.dump(inferences, fp)
+        with open(f'{dataset}/captions_{split}_{dataset}.json', 'w') as fp:
+            json.dump(inferences, fp)
+        print(f"Done with {split} of {dataset}")
 

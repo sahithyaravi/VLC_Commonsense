@@ -9,6 +9,8 @@ COMET expansion generation is under a separate repo.
 
 ### Install requirements
 pip install -r requirements.txt
+Download coco model for captioning: gdown --id 1IdaBtMSvtyzF0ByVaBHtvM0JYSXRExRX
+(or link: https://drive.google.com/file/d/1IdaBtMSvtyzF0ByVaBHtvM0JYSXRExRX/view)
 
 ### Configure 
 Set paths for images, expansions, method to generate context in config.py
