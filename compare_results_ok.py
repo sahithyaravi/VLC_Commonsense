@@ -1,9 +1,6 @@
-import json
+import os
 import random
-
-import matplotlib.image as mpimg
-import matplotlib.pyplot as plt
-from matplotlib import gridspec
+import pandas as pd
 from utils import load_json, image_path_to_id, imageid_to_path
 from plot_picked_expansions import show_image
 from config import *
@@ -18,15 +15,22 @@ if __name__ == '__main__':
     # check if all the paths provided are correct:
     annotations = load_json(f'{data_root}/ok-vqa/mscoco_val2014_annotations.json')
     questions = load_json(f'{data_root}/ok-vqa/OpenEnded_mscoco_val2014_questions.json')
-    results1 = load_json('final_outputs/results/19_captions_okvqa_val2014.json')
-    results2 = load_json('final_outputs/results/19_semv1_okvqa_val2014.json')
     captions = load_json(f'{data_root}/vqa/expansion/captions/captions_val2014_vqa.json')
-    expansion = load_json('final_outputs/semv1_okvqa/sem1.3_okvqa_val2014.json')
+    expansion = load_json('final_outputs/okvqa/sem1.3/sem1.3_okvqa_val2014.json')
+    gpt3 = load_json('final_outputs/gpt3/val2014_gpt3.json')
+    grad_norms = load_json('eccv_results/19_sem13_5_sbert_linear_prevqa_okvqa_val2014_gradnorms.json')
+    grad_norms_df = pd.DataFrame(grad_norms)
+    grad_norms_dict = dict(zip(grad_norms_df["question_id"].values, grad_norms_df["grad_norm"].values))
+
+    # the two results to compare
+    results1 = load_json('eccv_results/caption_okvqa_val2014.json')
+    results2 = load_json('eccv_results/sem13_gpt3_5_sbert_linear_prevqa_okvqa_val2014.json')
+
 
     ans_list = annotations['annotations']
     q_list = questions['questions']
 
-    # get all difference bewtween results
+    # get all difference between results
     diffs = []
     total = len(results1)
     for i in range(len(results1)):
@@ -34,8 +38,8 @@ if __name__ == '__main__':
             diffs.append(i)
 
     # random 50 indices
-    random.seed(10)
-    for rand in range(100):
+    random.seed(42)
+    for rand in range(50):
         rand_idx = random.randint(0, len(diffs) - 1)
         rand_idx = diffs[rand_idx]
         # print(results1[rand_idx])
@@ -97,10 +101,17 @@ if __name__ == '__main__':
         if res['state'] == 'good':
             image_path = f"{data_root}/vqa/val2014/" + res['image_path']
             title = res['question']
-            text = res['caption'] + '\n' + res['expansion'] + '\n\nCaption Answer: ' + res[
-                'answer_1'] + '\n Caption+semV1 Answer: ' + res['answer_2'] + '\n\n GT Answers: ' + ", ".join(
-                res["possible_answers"])
-            save_name = 'final_outputs/images/' + res['state'] + "-" + str(res['question_id'])
+            text = res['caption'] + '\n Context:' + res['expansion'] + '\n\n base Answer: ' + res[
+                'answer_1'] + '\nimproved Answer: ' + res['answer_2'] + '\n\n GT Answers: ' + ", ".join(
+                res["possible_answers"]) + str(grad_norms_dict[int(q_id)])
+            print(text)
+            print("gpt3", gpt3[str(res['question_id'])])
+
+            # Save path - change this
+            if not os.path.exists(res['state']):
+                os.mkdir(res['state'])
+
+            save_name = res['state'] + "/"+ str(res['question_id'])
             show_image(image_path, text, title, save_name)
 
     print(len(diffs))

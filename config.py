@@ -27,7 +27,11 @@ No semantic search, just pick topk expansions
 
 """
 method = 'sem1'  # [sem1- caption, sem2-caption+question]
+<<<<<<< HEAD
 version = '1'
+=======
+version = '3'
+>>>>>>> e4278a6fd017b50bf6462580fc569faf4ba35425
 
 """
 @param: model_for_qn_search

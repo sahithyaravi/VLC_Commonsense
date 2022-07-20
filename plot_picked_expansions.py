@@ -14,7 +14,7 @@ def show_image(image_path="", text="", title="", savefig_path="out.png"):
     fig.suptitle(title)
     # plt.rcParams["figure.figsize"] = (25, 20)
 
-    gs = gridspec.GridSpec(1, 2, width_ratios=[1, 2])
+    gs = gridspec.GridSpec(1, 2, width_ratios=[2, 1])
     ax1 = plt.subplot(gs[0])
     ax2 = plt.subplot(gs[1])
     plt.rcParams.update({'font.size': 8})
@@ -31,6 +31,7 @@ def show_image(image_path="", text="", title="", savefig_path="out.png"):
 
 
 if __name__ == '__main__':
+<<<<<<< HEAD
     if dataset == "vcr":
         data = []
         with open(questions_path, 'r') as fp:
@@ -52,6 +53,23 @@ if __name__ == '__main__':
     
 
     picked_expansions = load_json(final_expansion_save_path + ".json")
+=======
+    annotations = load_json(f'{data_root}/ok-vqa/mscoco_val2014_annotations.json')
+    questions = load_json(f'{data_root}/ok-vqa/OpenEnded_mscoco_val2014_questions.json')
+    captions = load_json(f'{data_root}/vqa/expansion/captions/captions_val2014_vqa.json')
+    picked_expansions = load_json('final_outputs/okvqa/sem1.3/sem1.3_okvqa_val2014.json')
+    gpt3 = load_json('final_outputs/gpt3/val2014_gpt3.json')
+    grad_norms = load_json('eccv_results/19_sem13_5_sbert_linear_prevqa_okvqa_val2014_gradnorms.json')
+    grad_norms_df = pd.DataFrame(grad_norms)
+    grad_norms_dict = dict(zip(grad_norms_df["question_id"].values, grad_norms_df["grad_norm"].values))
+
+
+    # Get questions as df
+    df = pd.DataFrame(questions['questions'])
+    df['image_id'] = df['image_id'].astype(str)
+    df['question_id'] = df['question_id'].astype(str)
+
+>>>>>>> e4278a6fd017b50bf6462580fc569faf4ba35425
     print(len(picked_expansions))
     
     print(df['image_path'].values[0])
