@@ -10,7 +10,7 @@ import torch
 from config import *
 from semantic_search import symmetric_search, image_symmetric_search
 from utils import get_personx, load_json, save_json, image_path_to_id, is_person, qdict_to_df, lexical_overlap
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 # gc.collect()
 # torch.cuda.empty_cache()
 
@@ -100,7 +100,7 @@ def search_caption_expansions(caption_expanded, questions_df, parallel=False):
             qids = list(df_img['question_id'].values)
             # picked, _ = symmetric_search(queries, context, k=10, threshold=0.01)
             if queries and context:
-                print(queries)
+                # print(queries)
                 if type(queries[0]) != str:
                     queries = ["".join(i[0]) for i in queries]
                 text_only, _ =  symmetric_search(queries, context)

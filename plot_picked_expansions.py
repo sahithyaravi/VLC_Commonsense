@@ -23,10 +23,10 @@ def show_image(image_path="", text="", title="", savefig_path="out.png"):
     plt.box(False)
 
     ax2.text(0.1, 0.1, text, wrap=True)
-    # if image_path:
-    #     img = mpimg.imread(image_path)
-    #     imgplot = ax1.imshow(img)
-    # plt.show()
+    if image_path:
+        img = mpimg.imread(image_path)
+        imgplot = ax1.imshow(img)
+    plt.show()
     fig.savefig(savefig_path)
 
 
@@ -47,7 +47,7 @@ if __name__ == '__main__':
     else:
         questions = load_json(questions_path)
         df = qdict_to_df(questions, dataset)
-    # captions = load_json(captions_path)
+    captions = load_json(captions_path)
     # Get questions as df
     
 
@@ -60,7 +60,7 @@ if __name__ == '__main__':
     print("Number of smaples", len(keys))
 
     c = 0
-    for key in keys:
+    for key in keys[100:200]:
         filename = key
         image_path = f'{images_path}/{filename}'
         df_image = df[df['image_path'] == key]
@@ -75,7 +75,7 @@ if __name__ == '__main__':
                     text2 = ""
                     texts.append(quest + "?\n" + text1 + "\n" + text2)
                     c += 1
-            show_image("", "\n\n".join(texts), title="", savefig_path=f"{c}_out.png")
+            show_image(image_path, "\n\n".join(texts), title=captions[key], savefig_path=f"{c}_out.png")
             
             plt.show()
 

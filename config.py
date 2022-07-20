@@ -71,7 +71,7 @@ model_for_qn_search = "text"
 
 # # Configure VCR
 dataset = 'vcr'
-split = 'train'
+split = 'val'
 data_root = "/scratch/sahithya/vlcbert/vcr"
 images_path = f'{data_root}/vcr1images/'
 questions_path = f'{data_root}/{split}.jsonl'
