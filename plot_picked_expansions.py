@@ -31,7 +31,6 @@ def show_image(image_path="", text="", title="", savefig_path="out.png"):
 
 
 if __name__ == '__main__':
-<<<<<<< HEAD
     if dataset == "vcr":
         data = []
         with open(questions_path, 'r') as fp:
@@ -53,7 +52,7 @@ if __name__ == '__main__':
     
 
     picked_expansions = load_json(final_expansion_save_path + ".json")
-=======
+
     annotations = load_json(f'{data_root}/ok-vqa/mscoco_val2014_annotations.json')
     questions = load_json(f'{data_root}/ok-vqa/OpenEnded_mscoco_val2014_questions.json')
     captions = load_json(f'{data_root}/vqa/expansion/captions/captions_val2014_vqa.json')
@@ -69,7 +68,7 @@ if __name__ == '__main__':
     df['image_id'] = df['image_id'].astype(str)
     df['question_id'] = df['question_id'].astype(str)
 
->>>>>>> e4278a6fd017b50bf6462580fc569faf4ba35425
+
     print(len(picked_expansions))
     
     print(df['image_path'].values[0])
