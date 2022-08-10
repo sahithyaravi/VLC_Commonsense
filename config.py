@@ -29,9 +29,9 @@ No semantic search, just pick topk expansions
 """
 method = 'sem1'  # [sem1- caption, sem2-caption+question]
 version = '2'  # version of semantic search results
-dataset = 'vcr' # dataset 'vcr', 'okvqa' or 'aokvqa
+dataset = 'okvqa' # dataset 'vcr', 'okvqa' or 'aokvqa
 data_root = "data" # root of the dataset folder arranged similar to VLC-BERT
-split = 'train'
+split = 'val'
 
 # Relations
 atomic_relations = ["oEffect",

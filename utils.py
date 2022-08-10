@@ -28,12 +28,12 @@ def imageid_to_path(image_id):
     if dataset == "aokvqa":
         filename = f'' + n_zeros * '0' + str(image_id) + '.jpg'
     else:
-        filename = f'COCO_{split}_' + n_zeros * '0' + image_id + '.jpg'
+        filename = f'COCO_{split}2014_' + n_zeros * '0' + image_id + '.jpg'
     return filename
 
 
 def image_path_to_id(image_fullname):
-    img_id = image_fullname.replace(f'COCO_{split}_00', "")
+    img_id = image_fullname.replace(f'COCO_{split}2014_00', "")
     img_id = img_id.replace('.jpg', "")
     return str(int(img_id))
 
@@ -186,7 +186,7 @@ def qdict_to_df(qdict, dataset):
         df["image_path"] = df["img_fn"]
         df["question_id"] = df["question_number"].astype(str)
         
-        if "question_orig" not in list(df.columns)ååå:
+        if "question_orig" not in list(df.columns):
             df["question_orig"] = df['question'].apply(lambda x: ' '.join(map(str, x)))
             df["question_orig"] = df["question_orig"].str.replace("[", "")
             df["question_orig"] = df["question_orig"].str.replace("]", "")

@@ -4,7 +4,7 @@ import pandas as pd
 from utils import load_json, image_path_to_id, imageid_to_path
 from plot_picked_expansions import show_image
 from config import *
-
+# Don't forget to set val split and okvqa dataset in your config.py
 
 def get_count(res, answers):
     human_count = answers.count(res)
@@ -18,13 +18,13 @@ if __name__ == '__main__':
     captions = load_json(f'{data_root}/coco/okvqa/commonsense/captions/captions_val2014_vqa.json')
     expansion = load_json(f'{data_root}/coco/okvqa/commonsense/expansions/sem1.3_okvqa_val2014.json')
     gpt3 = load_json(f'{data_root}/coco/okvqa/commonsense/gpt3/val2014_gpt3.json')
-    grad_norms = load_json('result_files/19_sem13_5_sbert_linear_prevqa_okvqa_val2014_gradnorms.json')
+    grad_norms = load_json('result_files/okvqa/19_sem13_5_sbert_linear_prevqa_okvqa_val2014_gradnorms.json')
     grad_norms_df = pd.DataFrame(grad_norms)
     grad_norms_dict = dict(zip(grad_norms_df["question_id"].values, grad_norms_df["grad_norm"].values))
 
     # the two results to compare
-    results1 = load_json('result_files/caption_okvqa_val2014.json')
-    results2 = load_json('result_files/sem13_gpt3_5_sbert_linear_prevqa_okvqa_val2014.json')
+    results1 = load_json('result_files/okvqa/caption_okvqa_val2014.json')
+    results2 = load_json('result_files/okvqa/sem13_gpt3_5_sbert_linear_prevqa_okvqa_val2014.json')
 
 
     ans_list = annotations['annotations']
@@ -99,7 +99,7 @@ if __name__ == '__main__':
 
         # print(res)
         if res['state'] == 'good':
-            image_path = f"{data_root}/vqa/val2014/" + res['image_path']
+            image_path = f"{data_root}/coco/val2014/" + res['image_path']
             title = res['question']
             text = res['caption'] + '\n Context:' + res['expansion'] + '\n\n base Answer: ' + res[
                 'answer_1'] + '\nimproved Answer: ' + res['answer_2'] + '\n\n GT Answers: ' + ", ".join(
