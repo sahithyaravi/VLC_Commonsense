@@ -21,7 +21,7 @@ else:
     sentence_embedder = image_embedder
 
 
-def symmetric_search(queries, corpus, k=15, threshold=0.2):
+def symmetric_search(queries, corpus, k=10, threshold=0.1):
     corpus_embeddings = sentence_embedder.encode(corpus, convert_to_tensor=True)
     top_k = min(k, len(corpus))
     result = []

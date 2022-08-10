@@ -180,6 +180,19 @@ def qdict_to_df(qdict, dataset):
         df = pd.DataFrame.from_dict(qdict, orient='index')
         df['question_id'] = df['question_id'].astype(str)
         df["image_path"] = df["img_file"].astype(str)
+    elif dataset == "vcr":
+        df = pd.DataFrame(qdict)
+        df["image_id"] = df["img_id"]
+        df["image_path"] = df["img_fn"]
+        df["question_id"] = df["question_number"].astype(str)
+        
+        if "question_orig" not in list(df.columns)ååå:
+            df["question_orig"] = df['question'].apply(lambda x: ' '.join(map(str, x)))
+            df["question_orig"] = df["question_orig"].str.replace("[", "")
+            df["question_orig"] = df["question_orig"].str.replace("]", "")
+
+        df.drop("question", inplace=True, axis=1)
+        df["question"] = df["question_orig"]
     else:
         if type(qdict) == list:
             df = pd.DataFrame(qdict)

@@ -12,18 +12,14 @@ def get_count(res, answers):
 
 if __name__ == '__main__':
     # check if all the paths provided are correct:
-    annotations = load_json(f'/Users/sahiravi/Documents/research/VL project/vlc_transformer/aokvqa/aokvqa_v1p0_val.json')
-    questions = load_json(f'/Users/sahiravi/Documents/research/VL project/vlc_transformer/aokvqa/aokvqa_v1p0_val.json')
-    captions = load_json(f'/Users/sahiravi/Documents/research/VL project/vlc_transformer/aokvqa/captions_val_aokvqa.json')
-    expansion = load_json('/Users/sahiravi/Documents/research/VL project/vlc_transformer/aokvqa/sem1.1_aokvqa_val.json')
-    gpt3 = None # load_json('final_outputs/gpt3/val2014_gpt3.json')
-    #grad_norms = load_json('eccv_results/19_sem13_5_sbert_linear_okvqa_val2014_gradnorms.json')
-    # grad_norms_df = pd.DataFrame(grad_norms)
-    # grad_norms_dict = dict(zip(grad_norms_df["question_id"].values, grad_norms_df["grad_norm"].values))
+    annotations = load_json(f'{data_root}/coco/aokvqa/aokvqa_v1p0_val.json')
+    questions = load_json(f'{data_root}/coco/aokvqa/aokvqa_v1p0_val.json')
+    captions = load_json(f'{data_root}/coco/aokvqa/commonsense/captions/captions_val_aokvqa.json')
+    expansion = load_json(f'{data_root}/coco/aokvqa/commonsense/expansions/sem1.1_aokvqa_val.json')
 
     # the two results to compare
-    results1 = load_json('/Users/sahiravi/Documents/research/VL project/vlc_transformer/aokvqa/captions_aokvqa_val2017.json')
-    results2 = load_json('/Users/sahiravi/Documents/research/VL project/vlc_transformer/aokvqa/sem11_aokvqa_val2017.json')
+    results1 = load_json('result_files/captions_aokvqa_val2017.json')
+    results2 = load_json('result_files/sem11_aokvqa_val2017.json')
 
 
     ans_list = annotations

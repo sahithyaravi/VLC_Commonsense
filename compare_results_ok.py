@@ -13,18 +13,18 @@ def get_count(res, answers):
 
 if __name__ == '__main__':
     # check if all the paths provided are correct:
-    annotations = load_json(f'{data_root}/ok-vqa/mscoco_val2014_annotations.json')
-    questions = load_json(f'{data_root}/ok-vqa/OpenEnded_mscoco_val2014_questions.json')
-    captions = load_json(f'{data_root}/vqa/expansion/captions/captions_val2014_vqa.json')
-    expansion = load_json('final_outputs/okvqa/sem1.3/sem1.3_okvqa_val2014.json')
-    gpt3 = load_json('final_outputs/gpt3/val2014_gpt3.json')
-    grad_norms = load_json('eccv_results/19_sem13_5_sbert_linear_prevqa_okvqa_val2014_gradnorms.json')
+    annotations = load_json(f'{data_root}/coco/annotations/mscoco_val2014_annotations.json')
+    questions = load_json(f'{data_root}/coco/okvqa/OpenEnded_mscoco_val2014_questions.json')
+    captions = load_json(f'{data_root}/coco/okvqa/commonsense/captions/captions_val2014_vqa.json')
+    expansion = load_json(f'{data_root}/coco/okvqa/commonsense/expansions/sem1.3_okvqa_val2014.json')
+    gpt3 = load_json(f'{data_root}/coco/okvqa/commonsense/gpt3/val2014_gpt3.json')
+    grad_norms = load_json('result_files/19_sem13_5_sbert_linear_prevqa_okvqa_val2014_gradnorms.json')
     grad_norms_df = pd.DataFrame(grad_norms)
     grad_norms_dict = dict(zip(grad_norms_df["question_id"].values, grad_norms_df["grad_norm"].values))
 
     # the two results to compare
-    results1 = load_json('eccv_results/caption_okvqa_val2014.json')
-    results2 = load_json('eccv_results/sem13_gpt3_5_sbert_linear_prevqa_okvqa_val2014.json')
+    results1 = load_json('result_files/caption_okvqa_val2014.json')
+    results2 = load_json('result_files/sem13_gpt3_5_sbert_linear_prevqa_okvqa_val2014.json')
 
 
     ans_list = annotations['annotations']

@@ -10,24 +10,10 @@ import torch
 from config import *
 from semantic_search import symmetric_search, image_symmetric_search
 from utils import get_personx, load_json, save_json, image_path_to_id, is_person, qdict_to_df, lexical_overlap
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
-# gc.collect()
-# torch.cuda.empty_cache()
+
 
 os.environ["TOKENIZERS_PARALLELISM"] = "True"
 relation_map = load_json("relation_map.json")
-atomic_relations = ["oEffect",
-                    "oReact",
-                    "oWant",
-                    "xAttr",
-                    "xEffect",
-                    "xIntent",
-                    "xNeed",
-                    "xReact",
-                    "xReason",
-                    "xWant"]
-
-excluded_relations = ["causes", "xReason", "isFilledBy", "HasPainCharacter", "HasPainIntensity" ] # exclude some relations that are nonsense
 
 
 def convert_job(sentences, key, exp, srl):
@@ -42,13 +28,13 @@ def convert_job(sentences, key, exp, srl):
     context = []
     top_context = []
     seen = set()
-
+    excluded = [x.lower() for x in excluded_relations]
     if srl:
         personx = get_personx_srl(sentences[key])
     else:
         personx = get_personx(sentences[key].replace("_", ""))  # the sentence expanded by comet
     for relation, beams in exp.items():
-        if relation not in excluded_relations:
+        if relation.lower() not in excluded:
             top_context.append(relation_map[relation.lower()].replace("{0}", personx).replace("{1}", beams[0])+".")
             for beam in beams:
                 source = personx
@@ -236,18 +222,11 @@ if __name__ == '__main__':
     captions = load_json(captions_path)
     caption_expansions = load_json(captions_comet_expansions_path)
     if dataset == "vcr":
-        data = []
+        questions = []
         with open(questions_path, 'r') as fp:
             for line in fp:
                 data.append(json.loads(line))
-
-        df = pd.DataFrame(data)
-        df["image_id"] = df["img_id"]
-        df["image_path"] = df["img_fn"]
-        df["question_id"] = df["question_number"].astype(str)
-        df.drop("question", inplace=True, axis=1)
-        df["question"] = df["question_orig"]
-        print(df.head())
+        df = qdict_to_df(questions, dataset)
     else:
         questions = load_json(questions_path)
         if method == "sem2" and os.path.exists(question_csv):
@@ -257,16 +236,18 @@ if __name__ == '__main__':
             question_sentences = dict(zip(df["question_id"].values, list(df["question_phrase"].values)))
         else:
             df = qdict_to_df(questions, dataset)
-    print("Questions dataframe: ", df.columns)
-    logger.info("Converting caption expansions to sentences")
 
+    
+    # Convert expansions to sentences
+    logger.info("Number of questions: ", df.shape)
+    logger.info("Converting caption expansions to sentences")
     caption_expansions_sentences, top_caption_expansions_sentences = expansions_to_sentences(caption_expansions,
                                 captions, caption_expansion_sentences_path, topk_caption_path, parallel=True)
 
+    # Perform semantic search
     logger.info(f"Starting to pick final expansions using {method}:")
     if method == "sem1":
         out, out1 = search_caption_expansions(caption_expansions_sentences, df, parallel=False)
-        print(out1)
         # if out:
         #     save_json(final_expansion_save_path + "I.json", out)
         save_json(final_expansion_save_path + ".json", out1)
