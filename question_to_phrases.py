@@ -1,19 +1,16 @@
-import re
-import sys
-import json
-import spacy
-import logging
 import itertools
+import re
 
+import spacy
 from allennlp.predictors import Predictor
-from allennlp.models.archival import load_archive
-from config import *
-from utils import load_json
-from process_expansions import qdict_to_df
 from tqdm import tqdm
+
+from config import *
+
+
 logger = logging.getLogger(__name__)
 
-Q_SENT = 'SBARQ' # Question sentence
+Q_SENT = 'SBARQ'  # Question sentence
 DETS = {'the', 'a', 'this', 'that', 'these', 'those'}
 QUESTION_WORDS = {'what', 'where', 'who', 'when', 'why', 'how'}
 
@@ -22,6 +19,7 @@ class QuestionConverter:
     """
     Converting questions to (partial) declarative sentences.
     """
+
     def __init__(self):
         self.nlp = spacy.load('en_core_web_sm')
         predictor = Predictor.from_path(
@@ -281,10 +279,10 @@ def qw_aux_np_vp(parse_tree):
     if not rule_applies:
         return None
 
-    new_sentence = [parse_tree.children[1].children[1].word, # NP
+    new_sentence = [parse_tree.children[1].children[1].word,  # NP
                     parse_tree.children[1].children[0].word if parse_tree.children[1].children[0].word != 'do' else '',
-                    ' '.join([node.word for node in parse_tree.children[1].children[2:]]), # VP / Adv / ...
-                    question_word_to_preposition.get(parse_tree.children[0].word, '_')] # prep
+                    ' '.join([node.word for node in parse_tree.children[1].children[2:]]),  # VP / Adv / ...
+                    question_word_to_preposition.get(parse_tree.children[0].word, '_')]  # prep
 
     new_sentence = ' '.join([const for const in new_sentence if const != ''])
     return new_sentence
@@ -358,14 +356,14 @@ def attach_constituency_with_spacy_tokens(const_parse, spacy_tokens):
 
         # Partial match - spacy is more split than the constituency parsing
         elif spacy_index < len(spacy_tokens) - 1 and node.word == ''.join(
-                [t.text for t in spacy_tokens[spacy_index:spacy_index+2]]):
-            node.attach_spacy_tokens(spacy_tokens[spacy_index:spacy_index+2])
+                [t.text for t in spacy_tokens[spacy_index:spacy_index + 2]]):
+            node.attach_spacy_tokens(spacy_tokens[spacy_index:spacy_index + 2])
 
         # Partial match - the constituency parsing is more split than spacy
         elif const_index < len(spacy_tokens) - 1 and spacy_tokens[spacy_index].text == ''.join(
                 [n.word for n in leaves[const_index:const_index + 2]]):
             node.attach_spacy_tokens([spacy_tokens[spacy_index]])
-            leaves[const_index+1].attach_spacy_tokens([spacy_tokens[spacy_index]])
+            leaves[const_index + 1].attach_spacy_tokens([spacy_tokens[spacy_index]])
 
         spacy_index += 1
         if spacy_index >= len(spacy_tokens):
@@ -397,6 +395,7 @@ class ParseTreeNode:
     - node_type: e.g. S, VP, NP, ...
     - children: list of ParseTreeNode objects
     """
+
     def __init__(self, word, node_type):
         self.word = word
         self.node_type = node_type
@@ -434,58 +433,59 @@ class ParseTreeNode:
 
 
 if __name__ == '__main__':
-    questions = load_json(questions_path)
-    df = qdict_to_df(questions)
-    questions = list(df['question'].values)
-    logger.info("Questions dataframe: ", df.head())
-
     logger.info("Converting caption expansions to sentences")
-
     question_converter = QuestionConverter()
-
     sample_questions = ['Where might Jenny be?',
-                 'Why would you be able to wait for someone?',
-                 'When is food never cold?',
-                 "How might a bank statement arrive at someone's house?",
-                 'Who is someone competing against?',
-                 'What is a steel cable called a wire rope primarily used for?',
-                 'What could be a serious consequence of typing too much?',
-                 'What might make a person stop driving to work and instead take the bus?',
-                 "If you're caught buying beer for children what will happen?",
-                 "After giving assistance to a person who's lost their wallet what is customarily given?",
-                 "What is something I need to avoid while playing ball?",
-                 "What is the opposite of being dead?", "What is the goal of a younger , risky investor?",
-                 "James is a gardener. That is his profession. What is one thing that he cannot do in his job?",
-                 "If you follow a road toward a river what feature are you driving through?",
-                 "What kind of service would you want if you do not want bad service or very good service?",
-                 "What kind of furniture would you put stamps in if you want to access them often?",
-                 "What events are typical, expected and not divine?",
-                 "What mineral is plentiful in milk and helps bone development?",
-                 "What prevents someone from climbing?",
-                 "What signals when an animal has received an injury?",
-                 "What leads someone to learning about world?",
-                 "A number is the usual response to what?",
-                 "There's an obvious prerequisite to being able to watch film, and that is to what?",
-                 "If you need to travel in the cold, you would be best to be what?",
-                 "He thinks that loving another will bring him what?",
-                 "It was his only connection to the outside world while doing time where?",
-                 "It was tradition for the team to enter what through the central passage?",
-                 "Fabric is cut to order at what type of seller?",
-                 "A small dog will do well in what competition?",
-                 "The wacky performer needed a new accordion, so he went where to get one?",
-                 "Despite this name out front you will also find beer and wine where too?",
-                 "What types of buildings typically have a column?",
-                 "What is likely to be felt by someone after a kill?"]
-    qps = []
-
-    for i in tqdm(range(len(questions))):
-        question = questions[i]
-
-        # print('==============')
-        # print(question)
+                        'Why would you be able to wait for someone?',
+                        'When is food never cold?',
+                        "How might a bank statement arrive at someone's house?",
+                        'Who is someone competing against?',
+                        'What is a steel cable called a wire rope primarily used for?',
+                        'What could be a serious consequence of typing too much?',
+                        'What might make a person stop driving to work and instead take the bus?',
+                        "If you're caught buying beer for children what will happen?",
+                        "After giving assistance to a person who's lost their wallet what is customarily given?",
+                        "What is something I need to avoid while playing ball?",
+                        "What is the opposite of being dead?", "What is the goal of a younger , risky investor?",
+                        "James is a gardener. That is his profession. What is one thing that he cannot do in his job?",
+                        "If you follow a road toward a river what feature are you driving through?",
+                        "What kind of service would you want if you do not want bad service or very good service?",
+                        "What kind of furniture would you put stamps in if you want to access them often?",
+                        "What events are typical, expected and not divine?",
+                        "What mineral is plentiful in milk and helps bone development?",
+                        "What prevents someone from climbing?",
+                        "What signals when an animal has received an injury?",
+                        "What leads someone to learning about world?",
+                        "A number is the usual response to what?",
+                        "There's an obvious prerequisite to being able to watch film, and that is to what?",
+                        "If you need to travel in the cold, you would be best to be what?",
+                        "He thinks that loving another will bring him what?",
+                        "It was his only connection to the outside world while doing time where?",
+                        "It was tradition for the team to enter what through the central passage?",
+                        "Fabric is cut to order at what type of seller?",
+                        "A small dog will do well in what competition?",
+                        "The wacky performer needed a new accordion, so he went where to get one?",
+                        "Despite this name out front you will also find beer and wine where too?",
+                        "What types of buildings typically have a column?",
+                        "What is likely to be felt by someone after a kill?"]
+    print("Checking sample questions")
+    for i in tqdm(range(len(sample_questions[-5:]))):
+        question = sample_questions[i]
+        print(question)
+        print("======================")
         qp = question_converter.convert(question)
-        qps.append(qp)
-        # print(qp)
-        # print('')
-    df['question_phrase'] = qps
-    df.to_csv(f'OpenEnded_mscoco_{split}_questions1.csv')
+        print(qp)
+    # use config.py to configure dataset name, questions path etc
+    # questions = load_json(questions_path)
+    # df = qdict_to_df(questions)
+    # questions = list(df['question'].values)
+    # logger.info("Questions dataframe: ", df.head())
+    # print("Processing questions file......")
+    # qps = []
+    # for i in tqdm(range(len(questions))):
+    #     question = questions[i]
+    #     qp = question_converter.convert(question)
+    #     qps.append(qp)
+    #
+    # df['question_phrase'] = qps
+    # df.to_csv(f'OpenEnded_mscoco_{split}_questions1.csv')

@@ -1,273 +1,165 @@
 import json
 import os
-import string
-import re
+
 import pandas as pd
-import gc
 from joblib import Parallel, delayed
 from tqdm import tqdm
-import torch
-from config import *
-from semantic_search import symmetric_search, image_symmetric_search
-from utils import get_personx, load_json, save_json, image_path_to_id, is_person, qdict_to_df, lexical_overlap
 
+from config import *
+from expansion_to_phrases import ExpansionConverter
+from prepare_data import prepare
+from semantic_search import symmetric_search
+from utils import load_json, save_json, image_path_to_id, qdict_to_df
 
 os.environ["TOKENIZERS_PARALLELISM"] = "True"
-relation_map = load_json("relation_map.json")
 
 
-def convert_job(sentences, key, exp, srl):
-    """
+def convert(image_originals, image_expansions, image_indicator, questions_df):
+    convertor = ExpansionConverter()
+    current_questions = questions_df[questions_df['image_path'] == image_indicator]
+    qids = list(current_questions['question_id'].values)
+    if current_questions.empty:
+        return {}
+    if type(image_originals) == dict:
 
-    :param sentences: actual sentence which was expanded
-    :param key: index to identify sentences/expansions
-    :param exp: expansions of the sentences
-    :param srl: if srl should be used for generating person x
-    :return:
-    """
-    context = []
-    top_context = []
-    seen = set()
-    excluded = [x.lower() for x in excluded_relations]
-    if srl:
-        personx = get_personx_srl(sentences[key])
+        queries = list(current_questions['question_phrase'].values)
+
+        all_sentences = []
+        for i in range(len(queries)):
+            out = convertor.convert(image_originals[qids[i]], image_expansions[qids[i]], False, queries[i])
+            all_sentences.append(out)
+        return dict(zip(qids, all_sentences))
     else:
-        personx = get_personx(sentences[key].replace("_", ""))  # the sentence expanded by comet
-    for relation, beams in exp.items():
-        if relation.lower() not in excluded:
-            top_context.append(relation_map[relation.lower()].replace("{0}", personx).replace("{1}", beams[0])+".")
-            for beam in beams:
-                source = personx
-                if beam != " none":
-                    target = beam.lstrip().translate(str.maketrans('', '', string.punctuation))
-                    if relation in atomic_relations and not is_person(source):
-                        source = "person"
-                    if target and "none" not in target and target not in seen and not lexical_overlap(seen, target):
-                        sent = relation_map[relation.lower()].replace("{0}", source).replace("{1}", target)+"."
-                        context.append(sent.capitalize())
-                        seen.add(target)
-
-    return [context, top_context]
+        out = convertor.convert(image_originals, image_expansions, False)
+        return dict(zip(qids, [out] * len(qids)))
 
 
-def expansions_to_sentences(expansions, sentences, save_path, topk_path, srl=False, parallel=False):
-    print("Converting expansions to sentences:")
-    all_top_contexts = {}
-    if os.path.exists(save_path):
+def expansions_to_sentences(expansions, original_sentences, questions, save_path, srl=False, parallel=False,
+                            use_cached=True):
+    """
+    Converts all the expansions from COMET into phrases or sentences using a template and text processing.
+
+    Parameters
+    ----------
+    expansions : The expansions in structured format from COMET
+    original_sentences : The original sentences provided to COMET
+    save_path : Path for saving converted expansions
+    srl : Use SRL to find person X or subject
+    parallel : Generate sentences with multi-processing/in parallel
+    use_cached : If set to True, this will use the already saved sentences file if present.
+    questions: questions are used to decide the subject in some cases.
+
+    Returns
+    -------
+    The expansions converted to sentences{id1:[list of sentences for id1].....}
+
+    """
+    if os.path.exists(save_path) and use_cached:
+        logger.info(f"Using already cached sentences file: {save_path}")
         all_contexts = load_json(save_path)
     else:
-
-        keys = list(expansions.keys())
+        image_indicator = list(expansions.keys())
         if parallel:
+            logger.info("Processing expansions in parallel")
             contexts, top_contexts = zip(*Parallel(n_jobs=-1)(
-                delayed(convert_job)(sentences, keys[i], expansions[keys[i]], srl)for i in tqdm(range(len(keys)))))
+                delayed(convert)(original_sentences[image_indicator[i]], expansions[image_indicator[i]],
+                                 image_indicator[i], questions_df) for i in
+                tqdm(range(len(image_indicator)))))
         else:
+            logger.warning("Processing expansions in series, set parallel=True to use multi-processing")
             contexts = []
             top_contexts = []
-            for i in tqdm(range(len(keys))):
-                context, top_context = convert_job(sentences, keys[i], expansions[keys[i]], srl)
+            for i in tqdm(range(len(image_indicator))):
+                context, top_context = convert(original_sentences[image_indicator[i]], expansions[image_indicator[i]],
+                                               srl, questions_df)
                 contexts.append(context)
                 top_contexts.append(top_context)
-        all_contexts = dict(zip(keys, contexts))
-        all_top_contexts = dict(zip(keys, top_contexts))
+        all_contexts = dict(zip(image_indicator, contexts))
         save_json(save_path, all_contexts)
-        # save_json(topk_path, all_top_contexts)
-    # print(all_contexts)
-    return all_contexts, all_top_contexts
+    return all_contexts
 
 
-def search_caption_expansions(caption_expanded, questions_df, parallel=False):
-    def semantic_search_job(img_path, context, questions_df):
-        picked_img = {}
+def search_expansions(expansions, questions_df, parallel=False):
+    def single_image_semantic_search(img_path, image_expansion_sentences, qdf):
         picked_text = {}
-        df_img = questions_df[questions_df['image_path'] == img_path]
+        df_img = qdf[questions_df['image_path'] == img_path]
         if not df_img.empty:
             queries = list(df_img['question'].values)
             qids = list(df_img['question_id'].values)
-            # picked, _ = symmetric_search(queries, context, k=10, threshold=0.01)
-            if queries and context:
-                # print(queries)
-                if type(queries[0]) != str:
-                    queries = ["".join(i[0]) for i in queries]
-                text_only, _ =  symmetric_search(queries, context)
-                # picked_img = dict(zip(qids, img_text))
-                picked_text = dict(zip(qids, text_only))
+            out, _ = [symmetric_search([queries[i]], image_expansion_sentences[qids[i]]) for i in range(len(qids))]
+            picked_text = dict(zip(qids, out))
         return picked_text
 
     # we only need to process those images that have questions:
-    question_image_ids = set(questions_df["image_path"].unique())
-    caption_keys = set(caption_expanded.keys())
-    print(question_image_ids)
-    print(caption_keys)
-    img_paths = list(question_image_ids & caption_keys)
-    img_paths.sort()
+    question_image_ind = set(questions_df["image_path"].unique())
+    image_indicators = list(question_image_ind & set(expansions.keys()))
+    image_indicators.sort()
     if parallel:
         final_list = zip(*Parallel(n_jobs=-1)(
-            delayed(semantic_search_job)(img_paths[i], caption_expanded[img_paths[i]], questions_df) for i in tqdm(range(len(img_paths)))))
-        final_context = dict(zip(img_paths, final_list))
+            delayed(single_image_semantic_search)(image_indicators[i], expansions[image_indicators[i]], questions_df)
+            for i in tqdm(range(len(image_indicators)))))
+        final_context = dict(zip(image_indicators, final_list))
     else:
-        final_context_img = {}
         final_context = {}
-        print(len(img_paths))
-        for i in tqdm(range(len(img_paths))):
-            text = semantic_search_job(img_paths[i], caption_expanded[img_paths[i]], questions_df)
-            final_context[str(img_paths[i])] = text
-
-    return final_context_img, final_context
-
-# def search_caption_expansions(caption_expanded, questions_df, parallel=False):
-#     def semantic_search_job(img_path, context, questions_df):
-#         picked_img = {}
-#         picked_text = {}
-#         df_img = questions_df[questions_df['image_path'] == img_path]
-#         if not df_img.empty:
-#             queries = list(df_img['question'].values)
-#             qids = list(df_img['question_id'].values)
-#             # picked, _ = symmetric_search(queries, context, k=10, threshold=0.01)
-#             if queries and context:
-#                 img_text, text_only = image_symmetric_search(img_path, queries, context, k=15, threshold=0)
-#                 picked_img = dict(zip(qids, img_text))
-#                 picked_text = dict(zip(qids, text_only))
-#         return picked_img, picked_text
-
-#     # we only need to process those images that have questions:
-#     question_image_ids = set(questions_df["image_path"].unique())
-#     caption_keys = set(caption_expanded.keys())
-#     img_paths = list(question_image_ids & caption_keys)
-#     img_paths.sort()
-#     if parallel:
-#         final_list_img, final_list = zip(*Parallel(n_jobs=-1)(
-#             delayed(semantic_search_job)(img_paths[i], caption_expanded[img_paths[i]], questions_df) for i in tqdm(range(len(img_paths)))))
-#         final_context = dict(zip(img_paths, final_list))
-#         final_context_img = dict(zip(img_paths, final_list_img))
-#     else:
-#         final_context_img = {}
-#         final_context = {}
-#         for i in tqdm(range(len(img_paths))):
-#             img, text = semantic_search_job(img_paths[i], caption_expanded[img_paths[i]], questions_df)
-#             final_context_img[img_paths[i]] = img
-#             final_context[img_paths[i]] = text
-
-#     return final_context_img, final_context
-
-
-def search_caption_qn_expansions(qn_expansions_sentences, caption_expanded, questions_df):
-    """
-    :param qn_expansions_sentences:
-    :param caption_expanded:
-    :param questions_df:
-    :return:
-    """
-
-    final_context = {}
-    # we only need to process those images that have questions:
-    question_image_ids = set(questions_df["image_path"].unique())
-    caption_keys = set(caption_expanded.keys())
-    img_paths = list(question_image_ids & caption_keys)
-    img_paths.sort()
-    img_ids = [image_path_to_id(key) for key in img_paths]
-    k1 = list(qn_expansions_sentences.keys())
-    k2 = (list(questions_df['question_id'].values))
-    print("intersection", len(set(k1)&set(k2)), len(k2))
-    for i in tqdm(range(len(img_paths))):
-        df_img = questions_df[questions_df['image_path'] == img_paths[i]]
-        if not df_img.empty:
-            queries = list(df_img['question'].values)
-            qids = list(df_img['question_id'].values)
-            picked_contexts = []
-            for qn, idx in zip(queries, qids):
-                picked_context_qn, _ = symmetric_search([qn], qn_expansions_sentences[idx], k=3, threshold=0.2)
-                picked_context_caption, _ = symmetric_search([qn], caption_expanded[img_paths[i]], k=3, threshold=0)
-                picked_text_per_question = [s1+s2 for s1,s2 in zip(picked_context_qn, picked_context_caption)][0]
-                picked_contexts.append(picked_text_per_question)
-            image_dict = dict(zip(qids, picked_contexts))
-            final_context[img_ids[i]] = image_dict
-
-    return final_context
-
-
-def pick_expansions_method_top(top_question_exp, caption_expanded, questions_df, qn_expansion_sentences):
-    """
-
-    :param top_question_exp:
-    :param caption_expanded:
-    :param questions_df:
-    :return:
-    """
-    final_context = {}
-    # print(qn_expansions_sentences.keys())
-    i = 0
-    for key, context in caption_expanded.items():
-        i += 1
-        # if i == 5:
-        #     break
-        img_id = image_path_to_id(key)
-        df_img = questions_df[questions_df['image_id'] == img_id]
-        queries = list(df_img['question'].values)
-        qids = list(df_img['question_id'].values)
-        image_dict = {}
-        picked_context1 = []
-        for qn, idx in zip(queries, qids):
-            if idx in qn_expansion_sentences:
-                image_dict[idx] = " ".join(context) + " " + " ".join(top_question_exp[idx])
-        final_context[img_id] = image_dict
-        if i % 10000 == 0:
-            with open(f'picked{method}_{split}{i}.json', 'w') as fpp:
-                json.dump(final_context, fpp)
+        for i in tqdm(range(len(image_indicators))):
+            text = single_image_semantic_search(image_indicators[i], expansions[image_indicators[i]], questions_df)
+            final_context[str(image_indicators[i])] = text
     return final_context
 
 
 if __name__ == '__main__':
     # load captions, questions and expansions
     captions = load_json(captions_path)
+    object_tags = None
     caption_expansions = load_json(captions_comet_expansions_path)
-    if dataset == "vcr":
-        questions = []
-        with open(questions_path, 'r') as fp:
-            for line in fp:
-                data.append(json.loads(line))
-        df = qdict_to_df(questions, dataset)
+    if os.path.exists(question_csv):
+        questions_df = pd.read_csv(question_csv)
     else:
-        questions = load_json(questions_path)
-        if method == "sem2" and os.path.exists(question_csv):
-            # this csv has questions converted to phrases
-            df = pd.read_csv(question_csv)
-            df["question_id"] = df["question_id"].astype(str) 
-            question_sentences = dict(zip(df["question_id"].values, list(df["question_phrase"].values)))
-        else:
-            df = qdict_to_df(questions, dataset)
+        questions_df = qdict_to_df(questions_path, dataset)
 
-    
+    logger.info("Number of questions: ", questions_df.shape[0])
+
     # Convert expansions to sentences
-    logger.info("Number of questions: ", df.shape)
     logger.info("Converting caption expansions to sentences")
-    caption_expansions_sentences, top_caption_expansions_sentences = expansions_to_sentences(caption_expansions,
-                                captions, caption_expansion_sentences_path, topk_caption_path, parallel=True)
 
-    # Perform semantic search
-    logger.info(f"Starting to pick final expansions using {method}:")
-    if method == "sem1":
-        out, out1 = search_caption_expansions(caption_expansions_sentences, df, parallel=False)
-        # if out:
-        #     save_json(final_expansion_save_path + "I.json", out)
-        save_json(final_expansion_save_path + ".json", out1)
-
-    elif method == "sem2":
+    if method == "sem-c":
+        expansion_sentences = expansions_to_sentences(caption_expansions,
+                                                      captions,
+                                                      questions_df,
+                                                      caption_expansion_sentences_path,
+                                                      parallel=True)
+    elif method == "sem-q":
+        if "question_phrase" not in questions_df.columns:
+            questions_df = prepare("sem-q", questions_df)
+        question_phrases = list(questions_df["question_phrase"].values)
         question_expansions = load_json(questions_comet_expansions_path)
-        question_expansions_sentences, _ = expansions_to_sentences(question_expansions,
-                                question_sentences, question_expansion_sentences_path, 
-                                topk_qn_path, parallel=True)
-        out = search_caption_qn_expansions(question_expansions_sentences,caption_expansions_sentences, df)
-        save_json(final_expansion_save_path + ".json", out)
-
+        expansion_sentences = expansions_to_sentences(question_expansions,
+                                                      questions_df,
+                                                      question_phrases,
+                                                      question_expansion_sentences_path,
+                                                      parallel=True)
+    elif method == "sem-cq":
+        if "question_caption_phrase" not in questions_df.columns:
+            questions_df = prepare("sem-cq", questions_df, captions)
+        question_phrases = list(questions_df["question_caption_phrase"].values)
+        question_expansions = load_json(questions_comet_expansions_path)
+        expansion_sentences = expansions_to_sentences(question_expansions,
+                                                      questions_df,
+                                                      question_phrases,
+                                                      question_expansion_sentences_path,
+                                                      parallel=True)
+    elif method == "sem-cqo":
+        if "question_caption_phrase" not in questions_df.columns:
+            questions_df = prepare("sem-cqo", questions_df, captions, object_tags)
+        question_phrases = list(questions_df["question_caption_object_phrase"].values)
+        question_expansions = load_json(questions_comet_expansions_path)
+        expansion_sentences = expansions_to_sentences(question_expansions,
+                                                      questions_df,
+                                                      question_phrases,
+                                                      question_expansion_sentences_path,
+                                                      parallel=True)
     else:
-        logger.warning("You are not using semantic search. Picking using topk expansions")
-        if os.path.exists(topk_qn_path):
-            top_question_expansions_sentences = load_json(topk_qn_path)
-        if os.path.exists(topk_caption_path):
-            top_caption_expansions_sentences = load_json(topk_caption_path)
+        expansion_sentences = {}
 
-        out, out1 = pick_expansions_method_top(top_question_expansions_sentences,
-                                                           top_caption_expansions_sentences,
-                                                           df)
-
+    final_results = search_expansions(expansion_sentences, questions_df, parallel=False)
+    save_json(final_expansion_save_path + ".json", final_results)

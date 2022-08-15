@@ -21,10 +21,12 @@ if __name__ == '__main__':
     grad_norms = load_json('result_files/okvqa/19_sem13_5_sbert_linear_prevqa_okvqa_val2014_gradnorms.json')
     grad_norms_df = pd.DataFrame(grad_norms)
     grad_norms_dict = dict(zip(grad_norms_df["question_id"].values, grad_norms_df["grad_norm"].values))
-
+    attention_dict = load_json('/Users/sahiravi/Documents/Research/VL project/vlc_transformer/result_files/okvqa/sem13-fusion-q_okvqa_val2014.json')
+    attention_df = pd.DataFrame(attention_dict)
+    print(attention_df.head())
     # the two results to compare
     results1 = load_json('result_files/okvqa/caption_okvqa_val2014.json')
-    results2 = load_json('result_files/okvqa/sem13_gpt3_5_sbert_linear_prevqa_okvqa_val2014.json')
+    results2 = load_json('result_files/okvqa/sem13-fusion-q_okvqa_val2014.json')
 
 
     ans_list = annotations['annotations']
@@ -38,8 +40,8 @@ if __name__ == '__main__':
             diffs.append(i)
 
     # random 50 indices
-    random.seed(42)
-    for rand in range(50):
+    random.seed(50)
+    for rand in range(40):
         rand_idx = random.randint(0, len(diffs) - 1)
         rand_idx = diffs[rand_idx]
         # print(results1[rand_idx])
@@ -94,18 +96,23 @@ if __name__ == '__main__':
             res['state'] = 'bad'
         elif acc_res2 > acc_res1:
             res['state'] = 'good'
-        else:
+        elif acc_res2 == 0 and acc_res1 == 0:
             res['state'] = 'neutral'
+        else:
+            res['state'] = 'none'
 
         # print(res)
-        if res['state'] == 'good':
+        if res['state'] == 'neutral':
             image_path = f"{data_root}/coco/val2014/" + res['image_path']
             title = res['question']
+            attn = attention_df[attention_df["question_id"]== q_id]
+            weights = attn["attn_weights"].values[0]
+            wts = [w for w in weights[0]]
             text = res['caption'] + '\n Context:' + res['expansion'] + '\n\n base Answer: ' + res[
                 'answer_1'] + '\nimproved Answer: ' + res['answer_2'] + '\n\n GT Answers: ' + ", ".join(
-                res["possible_answers"]) + str(grad_norms_dict[int(q_id)])
-            print(text)
-            print("gpt3", gpt3[str(res['question_id'])])
+                res["possible_answers"]) + str(wts)
+            # print(text)
+            # print("gpt3", gpt3[str(res['question_id'])])
 
             # Save path - change this
             if not os.path.exists(res['state']):

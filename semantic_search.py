@@ -15,14 +15,13 @@ else:
 image_model = "clip-ViT-B-32"
 semantic_search_model = "multi-qa-mpnet-base-dot-v1"
 image_embedder = SentenceTransformer(image_model, device=device)
-if model_for_qn_search == "text":
-    sentence_embedder = SentenceTransformer(semantic_search_model, device=device)
-else:
-    sentence_embedder = image_embedder
+sentence_embedder = SentenceTransformer(semantic_search_model, device=device)
+# else:
+#     sentence_embedder = image_embedder
 
 
 def symmetric_search(queries, corpus, k=10, threshold=0.1):
-    corpus_embeddings = sentence_embedder.encode(corpus, convert_to_tensor=True)
+    corpus_embeddings = sentence_embedder.encode(corpus, convert_to_tensor=True, device=device)
     top_k = min(k, len(corpus))
     result = []
     result_as_list = []

@@ -15,11 +15,11 @@ if __name__ == '__main__':
     annotations = load_json(f'{data_root}/coco/aokvqa/aokvqa_v1p0_val.json')
     questions = load_json(f'{data_root}/coco/aokvqa/aokvqa_v1p0_val.json')
     captions = load_json(f'{data_root}/coco/aokvqa/commonsense/captions/captions_val_aokvqa.json')
-    expansion = load_json(f'{data_root}/coco/aokvqa/commonsense/expansions/sem1.1_aokvqa_val.json')
+    expansion = load_json(f'{data_root}/coco/aokvqa/commonsense/expansions/sem1.2_aokvqa_val.json')
 
     # the two results to compare
-    results1 = load_json('result_files/captions_aokvqa_val2017.json')
-    results2 = load_json('result_files/sem11_aokvqa_val2017.json')
+    results1 = load_json('result_files/aokvqa/captions_aokvqa_val2017.json')
+    results2 = load_json('result_files/aokvqa/sem11_aokvqa_val2017.json')
 
 
     ans_list = annotations
@@ -71,12 +71,13 @@ if __name__ == '__main__':
         # for k in range(0, 12 - len(image_id)):
         #     image_id = '0' + image_id
         img_path = (image_id)
-        caption = imageid_to_path(image_id)
+        caption = captions[imageid_to_path(image_id)]
         # print(caption)
 
-        res['image_path'] = img_path
+        res['image_path'] = imageid_to_path(img_path)
         res['question'] = ques['question']
         res['caption'] = caption
+        res['rationale'] = ques['rationales']
 
         # first and second answer
         res['answer_1'] = results1[rand_idx]['answer']
@@ -92,24 +93,26 @@ if __name__ == '__main__':
             res['state'] = 'bad'
         elif acc_res2 > acc_res1:
             res['state'] = 'good'
-        else:
+        elif acc_res2 == 0 and acc_res1 == 0:
             res['state'] = 'neutral'
+        else:
+            res['state'] = 'both-good'
 
         # print(res)
-        if res['state'] == 'good':
+        if res['state'] == 'neutral':
             # norms = grad_norms_dict[int(q_id)]
 
             exp_list = res['expansion'].split(".")[:5]
             print(exp_list)
             l = exp_list
             sorted_expansions = l #sorted(l, key=lambda x:x[0], reverse=True)
-            image_path = f"{data_root}/vqa/val2014/" + res['image_path']
-            title = res['question']
+            image_path = f"{images_path}" + res['image_path']
+            title = caption
             print(title)
 
-            text = res['caption'] + '\n Context:' + str([x for x in sorted_expansions]) + '\n\n base Answer: ' + res[
+            text = res['question'] + '\n Context:' + str([x for x in sorted_expansions]) + '\n\n base Answer: ' + res[
                 'answer_1'] + '\nimproved Answer: ' + res['answer_2'] + '\n\n GT Answers: ' + ", ".join(
-                res["possible_answers"])
+                res["possible_answers"]) + "\n" + ", ".join(res["rationale"])
             print(text)
             # print("gpt3", gpt3[str(res['question_id'])])
 
@@ -118,7 +121,7 @@ if __name__ == '__main__':
                 os.mkdir(res['state'])
 
             save_name = res['state'] + "/"+ str(res['question_id']) + '_'+ str(seed)
-            show_image("", text, title, save_name)
+            show_image(image_path, text, title, save_name)
 
     print(len(diffs))
     print(total)

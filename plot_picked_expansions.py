@@ -7,7 +7,7 @@ from matplotlib import gridspec
 
 from config import *
 
-from utils import get_personx, load_json, save_json, image_path_to_id, is_person, qdict_to_df, lexical_overlap
+from utils import load_json, save_json, image_path_to_id, qdict_to_df
 
 def show_image(image_path="", text="", title="", savefig_path="out.png"):
     fig = plt.figure()
@@ -26,7 +26,7 @@ def show_image(image_path="", text="", title="", savefig_path="out.png"):
     if image_path:
         img = mpimg.imread(image_path)
         imgplot = ax1.imshow(img)
-    plt.show()
+    # plt.show()
     fig.savefig(savefig_path)
 
 
