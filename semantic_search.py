@@ -3,7 +3,6 @@ from PIL import Image
 from sentence_transformers import SentenceTransformer, util
 
 from config import *
-from plot_picked_expansions import show_image
 
 if torch.cuda.is_available():
     print("######## USING GPU ###############")

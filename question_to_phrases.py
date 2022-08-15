@@ -24,9 +24,9 @@ class QuestionConverter:
         self.nlp = spacy.load('en_core_web_sm')
         predictor = Predictor.from_path(
             "https://storage.googleapis.com/allennlp-public-models/elmo-constituency-parser-2020.02.10.tar.gz")
-        print(predictor.predict(
-            sentence="If you bring $10 with you tomorrow, can you pay for me to eat too?."
-        ))
+        # print(predictor.predict(
+        #     sentence="If you bring $10 with you tomorrow, can you pay for me to eat too?."
+        # ))
         self.constituency_parser = predictor
 
     def convert(self, question):

@@ -1,8 +1,7 @@
 import os
 import random
-import pandas as pd
-from utils import load_json, image_path_to_id, imageid_to_path
-from plot_picked_expansions import show_image
+from utils import load_json, imageid_to_path
+from analysis.plot_picked_expansions import show_image
 from config import *
 
 def get_count(res, answers):
@@ -18,8 +17,8 @@ if __name__ == '__main__':
     expansion = load_json(f'{data_root}/coco/aokvqa/commonsense/expansions/sem1.2_aokvqa_val.json')
 
     # the two results to compare
-    results1 = load_json('result_files/aokvqa/captions_aokvqa_val2017.json')
-    results2 = load_json('result_files/aokvqa/sem11_aokvqa_val2017.json')
+    results1 = load_json('../result_files/aokvqa/captions_aokvqa_val2017.json')
+    results2 = load_json('../result_files/aokvqa/sem11_aokvqa_val2017.json')
 
 
     ans_list = annotations

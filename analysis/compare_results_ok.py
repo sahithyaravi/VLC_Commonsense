@@ -1,8 +1,8 @@
 import os
 import random
 import pandas as pd
-from utils import load_json, image_path_to_id, imageid_to_path
-from plot_picked_expansions import show_image
+from utils import load_json, imageid_to_path
+from analysis.plot_picked_expansions import show_image
 from config import *
 # Don't forget to set val split and okvqa dataset in your config.py
 
@@ -18,15 +18,15 @@ if __name__ == '__main__':
     captions = load_json(f'{data_root}/coco/okvqa/commonsense/captions/captions_val2014_vqa.json')
     expansion = load_json(f'{data_root}/coco/okvqa/commonsense/expansions/sem1.3_okvqa_val2014.json')
     gpt3 = load_json(f'{data_root}/coco/okvqa/commonsense/gpt3/val2014_gpt3.json')
-    grad_norms = load_json('result_files/okvqa/19_sem13_5_sbert_linear_prevqa_okvqa_val2014_gradnorms.json')
+    grad_norms = load_json('../result_files/okvqa/19_sem13_5_sbert_linear_prevqa_okvqa_val2014_gradnorms.json')
     grad_norms_df = pd.DataFrame(grad_norms)
     grad_norms_dict = dict(zip(grad_norms_df["question_id"].values, grad_norms_df["grad_norm"].values))
-    attention_dict = load_json('/Users/sahiravi/Documents/Research/VL project/vlc_transformer/result_files/okvqa/sem13-fusion-q_okvqa_val2014.json')
+    attention_dict = load_json('/result_files/okvqa/sem13-fusion-q_okvqa_val2014.json')
     attention_df = pd.DataFrame(attention_dict)
     print(attention_df.head())
     # the two results to compare
-    results1 = load_json('result_files/okvqa/caption_okvqa_val2014.json')
-    results2 = load_json('result_files/okvqa/sem13-fusion-q_okvqa_val2014.json')
+    results1 = load_json('../result_files/okvqa/caption_okvqa_val2014.json')
+    results2 = load_json('../result_files/okvqa/sem13-fusion-q_okvqa_val2014.json')
 
 
     ans_list = annotations['annotations']
