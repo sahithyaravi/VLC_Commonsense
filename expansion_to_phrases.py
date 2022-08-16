@@ -69,7 +69,7 @@ class ExpansionConverter:
             "isFilledBy",
         ]
 
-    def convert(self, sentence, exp, use_srl, question=""):
+    def convert(self, sentence, exp, use_srl, question="", exclude_subject=True):
         """
 
         :param sentence: actual sentence provided as input to COMET
@@ -104,7 +104,10 @@ class ExpansionConverter:
                             continue
                         if target and "none" not in target and target not in seen and not self.lexical_overlap(seen,
                                                                                                                target):
-                            sent = relation_map[relation.lower()].replace("{0}", source).replace("{1}", target) + "."
+                            if exclude_subject:
+                                sent = relation_map[relation.lower()].replace("{1}", target)
+                            else:
+                                sent = relation_map[relation.lower()].replace("{0}", source).replace("{1}", target) + "."
                             context.append(sent.capitalize())
                             seen.add(target)
         # print(context)

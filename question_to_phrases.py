@@ -7,7 +7,6 @@ from tqdm import tqdm
 
 from config import *
 
-
 logger = logging.getLogger(__name__)
 
 Q_SENT = 'SBARQ'  # Question sentence
@@ -84,24 +83,25 @@ class QuestionConverter:
                        what_np1_aux_np2(const_parse) or qw_aux_np_vp(const_parse) or \
                        qw_anywhere(const_parse)
 
-
-        tokensq, tokensqp = nlp(actual_question), nlp(new_sentence.replace('_', ''))
-        nounsq = [token.text for token in tokensq if token.pos_=='NOUN']    
-        nounsqp = [token.text for token in tokensqp if token.pos_=='NOUN']
-        
         # Couldn't convert to question - just remove the question mark
-        if new_sentence is None or len(nounsq) > len(nounsqp):
+        if new_sentence is None:
             new_sentence = actual_question.replace('?', ' _').strip()
             new_sentence = remove_qn_words(new_sentence)
-
         # Capitalize the first word
         if capitalize_new_sentence:
             new_sentence = new_sentence.split()
             new_sentence = ' '.join([new_sentence[0].title()] + new_sentence[1:])
         output.append(new_sentence)
-        sentence = ' '.join(output)
+        sentence = ' '.join(output).replace('?', '')
         logger.debug(sentence)
-        return sentence.replace('?', '')
+        # Couldn't capture all objects
+        tokensq, tokensqp = self.nlp(question), self.nlp(sentence)
+        nounsq = [token.text for token in tokensq if ((token.tag_ == 'NN') or (token.tag_ == 'NNP'))]
+        nounsqp = [token.text for token in tokensqp if ((token.tag_ == 'NN') or (token.tag_ == 'NNP'))]
+        if len(nounsq) > len(nounsqp):
+            sentence = actual_question.replace('?', ' _').strip()
+            sentence = remove_qn_words(sentence)
+        return sentence
 
     def __constituents__(self, question):
         """
