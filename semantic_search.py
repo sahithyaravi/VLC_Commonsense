@@ -38,7 +38,7 @@ def symmetric_search(queries, corpus, k=10, threshold=0.1):
 
         result_as_list.append(sent)
         result.append(" ".join(sent))
-    return result, result_as_list
+    return result
 
 
 # Search that returns expansions closest to the query as well to the image & query intersection

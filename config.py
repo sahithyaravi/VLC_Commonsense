@@ -14,7 +14,7 @@ method = 'sem-q'  # [sem1- caption, sem2-caption+question]
 version = '1'  # version of semantic search results
 dataset = 'aokvqa'  # dataset 'vcr', 'okvqa' or 'aokvqa
 data_root = "scratch/data"  # root of the dataset folder arranged similar to VLC-BERT
-split = 'test'
+split = 'val'
 
 """
 @param: model_for_qn_search
@@ -55,9 +55,9 @@ elif dataset == 'aokvqa':
     question_csv =  questions_path.split("json")[0] +'csv'
     captions_path = f'{data_root}/coco/aokvqa/commonsense/captions/captions_{split}_{dataset}.json'
     captions_comet_expansions_path =f'{data_root}/coco/aokvqa/commonsense/expansions/caption_comet_expansions_{split}_{dataset}.json'
-    questions_comet_expansions_path = f""
+    questions_comet_expansions_path = f'{data_root}/coco/aokvqa/commonsense/expansions/question_comet_expansions_{split}_{dataset}.json'
     caption_expansion_sentences_path = f'{data_root}/coco/aokvqa/commonsense/expansions/caption_expansion_sentences_{split}_{dataset}_{method}.{version}.json'
-    question_expansion_sentences_path = f''
+    question_expansion_sentences_path =  f'{data_root}/coco/aokvqa/commonsense/expansions/question_expansion_sentences_{split}_{dataset}_{method}.{version}.json'
     final_expansion_save_path = f'{data_root}/coco/aokvqa/commonsense/expansions/{method}.{version}_{dataset}_{split}'
     topk_caption_path = f'{data_root}/coco/aokvqa/commonsense/expansions/top_cap_sentences_{split}_{dataset}.json'
     topk_qn_path = f'{data_root}/coco/aokvqa/commonsense/expansions/top_qn_sentences_{split}_{dataset}.json'

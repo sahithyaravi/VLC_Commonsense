@@ -87,7 +87,7 @@ class ExpansionConverter:
             if "not" in question.split(" "):
                 excluded.remove("notmadeof")
                 excluded.remove("nothasproperty")
-            personx = self.get_personx(question)
+            personx = self.get_personx(question.replace("_", ""))
 
         if not question or not personx:
             personx = self.get_personx(sentence.replace("_", ""))
@@ -107,7 +107,7 @@ class ExpansionConverter:
                             sent = relation_map[relation.lower()].replace("{0}", source).replace("{1}", target) + "."
                             context.append(sent.capitalize())
                             seen.add(target)
-        print(context)
+        # print(context)
         return [context, top_context]
 
     def is_person(self, word):
@@ -224,7 +224,7 @@ class ExpansionConverter:
                         personx[v['verb']] = node
                     if relation == 'ARG0':
                         personx[v['verb']] = node
-        print(personx)
+        # print(personx)
         persons = list(personx.values())
         substring_list = ['what is', 'what are', 'where', 'where is', 'where are', 'what',
                           'how are', 'how many', 'how is', 'how', 'where is', 'where are', 'where',
