@@ -12,7 +12,7 @@ else:
 
 # Define image and sentence embedder
 image_model = "clip-ViT-B-32"
-semantic_search_model = "multi-qa-mpnet-base-dot-v1"
+semantic_search_model = "all-mpnet-base-v2"
 image_embedder = SentenceTransformer(image_model, device=device)
 sentence_embedder = SentenceTransformer(semantic_search_model, device=device)
 # else:

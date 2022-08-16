@@ -21,7 +21,7 @@ class QuestionConverter:
     """
 
     def __init__(self):
-        self.nlp = spacy.load('en_core_web_sm')
+        self.nlp = spacy.load('en_core_web_md')
         predictor = Predictor.from_path(
             "https://storage.googleapis.com/allennlp-public-models/elmo-constituency-parser-2020.02.10.tar.gz")
         # print(predictor.predict(
@@ -84,8 +84,13 @@ class QuestionConverter:
                        what_np1_aux_np2(const_parse) or qw_aux_np_vp(const_parse) or \
                        qw_anywhere(const_parse)
 
+
+        tokensq, tokensqp = nlp(actual_question), nlp(new_sentence.replace('_', ''))
+        nounsq = [token.text for token in tokensq if token.pos_=='NOUN']    
+        nounsqp = [token.text for token in tokensqp if token.pos_=='NOUN']
+        
         # Couldn't convert to question - just remove the question mark
-        if new_sentence is None:
+        if new_sentence is None or len(nounsq) > len(nounsqp):
             new_sentence = actual_question.replace('?', ' _').strip()
             new_sentence = remove_qn_words(new_sentence)
 
@@ -93,11 +98,10 @@ class QuestionConverter:
         if capitalize_new_sentence:
             new_sentence = new_sentence.split()
             new_sentence = ' '.join([new_sentence[0].title()] + new_sentence[1:])
-
         output.append(new_sentence)
         sentence = ' '.join(output)
         logger.debug(sentence)
-        return sentence
+        return sentence.replace('?', '')
 
     def __constituents__(self, question):
         """

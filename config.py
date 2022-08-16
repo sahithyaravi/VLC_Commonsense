@@ -14,7 +14,7 @@ method = 'sem-q'  # [sem1- caption, sem2-caption+question]
 version = '1'  # version of semantic search results
 dataset = 'aokvqa'  # dataset 'vcr', 'okvqa' or 'aokvqa
 data_root = "scratch/data"  # root of the dataset folder arranged similar to VLC-BERT
-split = 'val'
+split = 'train'
 
 """
 @param: model_for_qn_search
