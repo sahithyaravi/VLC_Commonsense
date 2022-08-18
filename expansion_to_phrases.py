@@ -6,7 +6,7 @@ import textacy
 
 from config import *
 from utils import load_json
-
+from tqdm import tqdm
 relation_map = load_json("relation_map.json")
 
 
@@ -87,10 +87,10 @@ class ExpansionConverter:
             if "not" in question.split(" "):
                 excluded.remove("notmadeof")
                 excluded.remove("nothasproperty")
-            personx = self.get_personx(question.replace("_", ""))
+            personx_q = self.get_personx(question.replace("_", ""))
 
-        if not question or not personx:
-            personx = self.get_personx(sentence.replace("_", ""))
+        # if not question or not personx:
+        personx = self.get_personx(sentence.replace("_", ""))
 
         for relation, beams in exp.items():
             if relation.lower() not in excluded:
@@ -161,6 +161,7 @@ class ExpansionConverter:
                 return ""
         else:
             subj_head = svos[0][0]
+            print("SUBJ HEAD", subj_head)
             # is_named_entity = subj_head[0].root.pos_ == "PROP"
             personx = subj_head[0].text
             # " ".join([t.text for t in list(subj_head.lefts) + [subj_head] + list(subj_head.rights)])
@@ -241,3 +242,24 @@ class ExpansionConverter:
                 returnval = returnval.replace(subs, "")
 
         return returnval if returnval else "person"
+
+
+if __name__ == '__main__':
+    logger.info("Converting caption expansions to sentences")
+    question_converter = ExpansionConverter()
+    sample_questions = [
+        "is in the motorcyclist 's mouth", 
+        "Number birthday is probably being celebrated ", 
+        "best describes the pool of water", 
+        "The white substance is on top of the cupcakes",
+        "type of device is sitting next to the laptop",
+        "A laptop computer sitting on top of a desk. type of device is sitting next to the laptop"]
+
+    print("Checking sample questions")
+    for i in tqdm(range(len(sample_questions))):
+        question = sample_questions[i]
+        print("IN: ", question)
+        print("======================")
+        qp = question_converter.get_personx(question)
+        print("SUBJ: ", qp)
+        print("\n")
