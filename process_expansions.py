@@ -14,10 +14,10 @@ from utils import load_json, save_json, image_path_to_id, qdict_to_df
 os.environ["TOKENIZERS_PARALLELISM"] = "True"
 
 
-def convert(comet_input, original_expansion, expansion_key, q, method="sem-q"):
+def convert(comet_input, original_expansion, expansion_key, q, method="semq"):
     # print(q.head())
     convertor = ExpansionConverter()
-    if method == "sem-c":
+    if method == "semc":
         return convertor.convert(comet_input, original_expansion, False)
     else:
         current_df = q[q["question_id"] == str(expansion_key)]
@@ -69,14 +69,14 @@ def expansions_to_sentences(expansions, questions, original_sentences, save_path
     return all_contexts
 
 
-def search_expansions(expansions, questions_df, parallel=False, method="sem-q"):
+def search_expansions(expansions, questions_df, parallel=False, method="semq"):
     def single_image_semantic_search(img_path, image_expansion_sentences, qdf):
         picked_text = {}
         df_img = qdf[questions_df['image_path'] == img_path]
         if not df_img.empty:
             queries = list(df_img['question'].values)
             qids = list(df_img['question_id'].values)
-            if method == "sem-c":
+            if method == "semc":
                 out = [symmetric_search([queries[i]], expansions[img_path]) for i in range(len(qids))]
             else:
                 out = [symmetric_search([queries[i]], expansions[qids[i]]) for i in range(len(qids))]
@@ -116,14 +116,14 @@ if __name__ == '__main__':
     # Convert expansions to sentences
     logger.info("Converting caption expansions to sentences")
 
-    if method == "sem-c":
+    if method == "semc":
         expansion_sentences = expansions_to_sentences(caption_expansions,
                                                       captions,
                                                       questions_df,
                                                       caption_expansion_sentences_path,
                                                       parallel=True,
                                                       method=method)
-    elif method == "sem-q":
+    elif method == "semq":
         print(questions_df.head())
         # if "question_phrase" not in questions_df.columns:
         #     questions_df = prepare("sem-q", questions_df)
@@ -135,20 +135,20 @@ if __name__ == '__main__':
                                                       question_expansion_sentences_path,
                                                       parallel=True,
                                                       method=method)
-    elif method == "sem-cq":
+    elif method == "semcq":
         if "question_caption_phrase" not in questions_df.columns:
-            questions_df = prepare("sem-cq", questions_df, captions)
+            questions_df = prepare("semcq", questions_df, captions)
         question_phrases = dict(zip(list(questions_df["question_id"].values), list(questions_df["question_caption_phrase"].values)))
-        question_expansions = load_json(questions_comet_expansions_path)
+        question_expansions = load_json(cq_comet_expansions_path)
         expansion_sentences = expansions_to_sentences(question_expansions,
                                                       questions_df,
                                                       question_phrases,
-                                                      question_expansion_sentences_path,
+                                                      cq_expansion_sentences_path,
                                                       parallel=True,
-                                                      methpd=method)
-    elif method == "sem-cqo":
+                                                      method=method)
+    elif method == "semcqo":
         if "question_caption_phrase" not in questions_df.columns:
-            questions_df = prepare("sem-cqo", questions_df, captions, object_tags)
+            questions_df = prepare("semcqo", questions_df, captions, object_tags)
         question_phrases = dict(zip(list(questions_df["question_id"].values), list(questions_df["question_caption_object_phrase"].values)))
         question_expansions = load_json(questions_comet_expansions_path)
         expansion_sentences = expansions_to_sentences(question_expansions,

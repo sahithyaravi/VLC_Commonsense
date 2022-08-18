@@ -31,13 +31,12 @@ def show_image(image_path="", text="", title="", savefig_path="out.png"):
 
 if __name__ == '__main__':
     picked_expansions = load_json(final_expansion_save_path + ".json")
+    keys = list(picked_expansions.keys())
+    print("Number of samples", len(keys))
     captions = load_json(captions_path)
 
     # Get questions as df
     df = pd.read_csv(question_csv)
-    keys = list(picked_expansions.keys())
-    print(keys[0])
-    print("Number of samples", len(keys))
 
     c = 0
     for key in keys[0:20]:
@@ -48,11 +47,11 @@ if __name__ == '__main__':
             print(df_image.head())
             texts = []
             for index, row in df_image.iterrows():
-                quest = row['question'] + "\n" + row["question_phrase"]
+                quest = row['question'] + "\n" + row["question_caption_phrase"]
                 qid = row['question_id']
                 if qid in (picked_expansions[key]):
-                    text1 = " ".join(picked_expansions[key][qid])
-                    texts.append(quest + "?\n" + text1 + "\n")
+                    text1 = ",".join(picked_expansions[key][qid])
+                    texts.append(quest + "\n" + text1 + "\n")
                     c += 1
             show_image(image_path, "\n\n".join(texts), title=captions[key], savefig_path=f"{c}_out.png")
             plt.show()
