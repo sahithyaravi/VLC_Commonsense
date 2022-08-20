@@ -13,7 +13,7 @@ def show_image(image_path="", text="", title="", savefig_path="out.png"):
     fig.suptitle(title)
     # plt.rcParams["figure.figsize"] = (25, 20)
 
-    gs = gridspec.GridSpec(1, 2, width_ratios=[2, 1])
+    gs = gridspec.GridSpec(1, 2, width_ratios=[1, 2])
     ax1 = plt.subplot(gs[0])
     ax2 = plt.subplot(gs[1])
     plt.rcParams.update({'font.size': 8})
@@ -34,25 +34,19 @@ if __name__ == '__main__':
     keys = list(picked_expansions.keys())
     print("Number of samples", len(keys))
     captions = load_json(captions_path)
+    raw_expansions = load_json(question_expansion_sentences_path)
 
     # Get questions as df
     df = pd.read_csv(question_csv)
-
-    c = 0
-    for key in keys[0:20]:
-        filename = key
-        image_path = f'{images_path}{filename}'
-        df_image = df[df['image_path'] == key]
-        if not df_image.empty:
-            print(df_image.head())
-            texts = []
-            for index, row in df_image.iterrows():
-                quest = row['question'] + "\n" + row["question_caption_phrase"]
-                qid = row['question_id']
-                if qid in (picked_expansions[key]):
-                    text1 = ",".join(picked_expansions[key][qid])
-                    texts.append(quest + "\n" + text1 + "\n")
-                    c += 1
-            show_image(image_path, "\n\n".join(texts), title=captions[key], savefig_path=f"{c}_out.png")
-            plt.show()
-
+ 
+    for index, row in df.sample(10, random_state=50).iterrows():
+        print(row)
+        quest = row['question'] + "\n" + row["question_phrase"] + "\n" 
+        qid = str(row['question_id'])
+        img = row['image_path']
+        image_path = f'{images_path}{img}'
+        final_picked_expansions = ",".join(picked_expansions[img][qid])
+        full_expansions = f"{raw_expansions[qid]} \n {row['direct_answers']}"
+        text_input = (quest + "\n" + full_expansions + "\n"+ final_picked_expansions)
+        show_image(image_path, text_input, title=captions[img], savefig_path=f"{qid}_out.png")
+        plt.show()

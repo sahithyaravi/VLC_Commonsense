@@ -41,7 +41,6 @@ class ExpansionConverter:
                             "xWant"]
 
         self.excluded_relations = [
-            "causes",
             "CausesDesire",
             "DefinedAs",
             "DesireOf",
@@ -161,7 +160,7 @@ class ExpansionConverter:
                 return ""
         else:
             subj_head = svos[0][0]
-            print("SUBJ HEAD", subj_head)
+            # print("SUBJ HEAD", subj_head)
             # is_named_entity = subj_head[0].root.pos_ == "PROP"
             personx = subj_head[0].text
             # " ".join([t.text for t in list(subj_head.lefts) + [subj_head] + list(subj_head.rights)])
@@ -175,7 +174,7 @@ class ExpansionConverter:
         for s2 in vocab:
             w2 = s2.split()
             overlap = len(set(w1) & set(w2)) / len(w1)
-            if overlap > 0.6:
+            if overlap > 0.8:
                 return True
         return False
 
