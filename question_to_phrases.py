@@ -1,5 +1,6 @@
 import itertools
 import re
+from collections import defaultdict
 
 import spacy
 from allennlp.predictors import Predictor
@@ -21,14 +22,16 @@ class QuestionConverter:
 
     def __init__(self):
         self.nlp = spacy.load('en_core_web_md')
-        predictor = Predictor.from_path(
+        self.nlp.Defaults.stop_words |= {"background", "describes", "is", "describe", "was", "called", "were", "best"}
+        self.srl_predictor = Predictor.from_path( "https://storage.googleapis.com/allennlp-public-models/structured-prediction-srl-bert.2020.12.15.tar.gz")
+        self.constituency_parser = Predictor.from_path(
             "https://storage.googleapis.com/allennlp-public-models/elmo-constituency-parser-2020.02.10.tar.gz")
         # print(predictor.predict(
         #     sentence="If you bring $10 with you tomorrow, can you pay for me to eat too?."
         # ))
-        self.constituency_parser = predictor
 
-    def convert(self, question):
+
+    def convert(self, question, compress_phrase=True):
         """
         Convert a question to a declarative sentence
         :param question: string question, possibly followed up by declarative sentences
@@ -85,7 +88,7 @@ class QuestionConverter:
 
         # Couldn't convert to question - just remove the question mark
         if new_sentence is None:
-            new_sentence = actual_question.replace('?', ' _').strip()
+            new_sentence = actual_question.replace('?', '').strip()
             new_sentence = remove_qn_words(new_sentence)
         # Capitalize the first word
         if capitalize_new_sentence:
@@ -93,15 +96,52 @@ class QuestionConverter:
             new_sentence = ' '.join([new_sentence[0].title()] + new_sentence[1:])
         output.append(new_sentence)
         sentence = ' '.join(output).replace('?', '')
-        logger.debug(sentence)
-        # Couldn't capture all objects
-        tokensq, tokensqp = self.nlp(question), self.nlp(sentence)
-        nounsq = [token.text for token in tokensq if ((token.tag_ == 'NN') or (token.tag_ == 'NNP'))]
-        nounsqp = [token.text for token in tokensqp if ((token.tag_ == 'NN') or (token.tag_ == 'NNP'))]
-        if len(nounsq) > len(nounsqp):
-            sentence = actual_question.replace('?', ' _').strip()
-            sentence = remove_qn_words(sentence)
-        return sentence
+        if compress_phrase:
+            return self.compress(sentence)
+        return sentence.replace('_', '')
+
+    def compress(self, qn_phrase):
+        doc = self.nlp(qn_phrase.replace("_", ""))
+        final = []
+        for token in doc:
+            if not token.is_stop:
+                final.append(token.text)
+
+        return " ".join(final)
+
+        # Option2 use SRL
+        # results = self.srl_predictor.predict(
+        #     sentence=qn_phrase
+        # )
+        # verb_phrase = []
+        # for v in results['verbs']:
+        #     words = results['words']
+        #     tags = v['tags']
+        #     # print(words)
+        #     # print(tags)
+        #     new_words = [w for w, tag in zip(words, tags) if
+        #                  (('ARG1' in tag) or ('ARG0' in tag) or ('ARG2' in tag) or ('B-V' in tag)) and (
+        #                              w not in self.custom_stops)]
+        #     verb_phrase.extend(" ".join(new_words))
+        #
+        # if not verb_phrase:
+        #     return qn_phrase
+        # return max(verb_phrase, key=len).replace("_", "")
+
+        # Option3: you can find only noun phrases
+        # doc = self.nlp(qn_phrase)
+        # nps = [np.text
+        #  for nc in doc.noun_chunks
+        #  for np in [
+        #      nc,
+        #      doc[
+        #      nc.root.left_edge.i
+        #      :nc.root.right_edge.i + 1]]]
+        #
+        # if nps:
+        #     return max(nps, key=len).replace("_", "")
+        # else:
+        #     return qn_phrase.replace("_", "")
 
     def __constituents__(self, question):
         """
@@ -439,39 +479,48 @@ class ParseTreeNode:
 if __name__ == '__main__':
     logger.info("Converting caption expansions to sentences")
     question_converter = QuestionConverter()
-    sample_questions = ['Where might Jenny be?',
-                        'Why would you be able to wait for someone?',
-                        'When is food never cold?',
-                        "How might a bank statement arrive at someone's house?",
-                        'Who is someone competing against?',
-                        'What is a steel cable called a wire rope primarily used for?',
-                        'What could be a serious consequence of typing too much?',
-                        'What might make a person stop driving to work and instead take the bus?',
-                        "If you're caught buying beer for children what will happen?",
-                        "After giving assistance to a person who's lost their wallet what is customarily given?",
-                        "What is something I need to avoid while playing ball?",
-                        "What is the opposite of being dead?", "What is the goal of a younger , risky investor?",
-                        "James is a gardener. That is his profession. What is one thing that he cannot do in his job?",
-                        "If you follow a road toward a river what feature are you driving through?",
-                        "What kind of service would you want if you do not want bad service or very good service?",
-                        "What kind of furniture would you put stamps in if you want to access them often?",
-                        "What events are typical, expected and not divine?",
-                        "What mineral is plentiful in milk and helps bone development?",
-                        "What prevents someone from climbing?",
-                        "What signals when an animal has received an injury?",
-                        "What leads someone to learning about world?",
-                        "A number is the usual response to what?",
-                        "There's an obvious prerequisite to being able to watch film, and that is to what?",
-                        "If you need to travel in the cold, you would be best to be what?",
-                        "He thinks that loving another will bring him what?",
-                        "It was his only connection to the outside world while doing time where?",
-                        "It was tradition for the team to enter what through the central passage?",
-                        "Fabric is cut to order at what type of seller?",
-                        "A small dog will do well in what competition?",
-                        "The wacky performer needed a new accordion, so he went where to get one?",
-                        "Despite this name out front you will also find beer and wine where too?",
-                        "What types of buildings typically have a column?",
-                        "What is likely to be felt by someone after a kill?"]
+    sample_questions = [
+        'What best describes the pool of water?',
+        "What is in the motorcyclist 's mouth?",
+        "What number birthday is probably being celebrated?",
+        "What best describes the pool of water?",
+        "Which white substance is on top of the cupcakes?",
+        "What type of device is sitting next to the laptop?",
+        "Why is the laptop computer sitting on top of a desk?"
+        # 'Where might Jenny be?',
+        #                 'Why would you be able to wait for someone?',
+        #                 'When is food never cold?',
+        # "How might a bank statement arrive at someone's house?",
+        # 'Who is someone competing against?',
+        # 'What is a steel cable called a wire rope primarily used for?',
+        # 'What could be a serious consequence of typing too much?',
+        # 'What might make a person stop driving to work and instead take the bus?',
+        # "If you're caught buying beer for children what will happen?",
+        # "After giving assistance to a person who's lost their wallet what is customarily given?",
+        # "What is something I need to avoid while playing ball?",
+        # "What is the opposite of being dead?", "What is the goal of a younger , risky investor?",
+        # "James is a gardener. That is his profession. What is one thing that he cannot do in his job?",
+        # "If you follow a road toward a river what feature are you driving through?",
+        # "What kind of service would you want if you do not want bad service or very good service?",
+        # "What kind of furniture would you put stamps in if you want to access them often?",
+        # "What events are typical, expected and not divine?",
+        # "What mineral is plentiful in milk and helps bone development?",
+        # "What prevents someone from climbing?",
+        # "What signals when an animal has received an injury?",
+        # "What leads someone to learning about world?",
+        # "A number is the usual response to what?",
+        # "There's an obvious prerequisite to being able to watch film, and that is to what?",
+        # "If you need to travel in the cold, you would be best to be what?",
+        # "He thinks that loving another will bring him what?",
+        # "It was his only connection to the outside world while doing time where?",
+        # "It was tradition for the team to enter what through the central passage?",
+        # "Fabric is cut to order at what type of seller?",
+        # "A small dog will do well in what competition?",
+        # "The wacky performer needed a new accordion, so he went where to get one?",
+        # "Despite this name out front you will also find beer and wine where too?",
+        # "What types of buildings typically have a column?",
+        # "What is likely to be felt by someone after a kill?"
+    ]
     print("Checking sample questions")
     for i in tqdm(range(len(sample_questions[-5:]))):
         question = sample_questions[i]

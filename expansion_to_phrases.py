@@ -3,10 +3,11 @@ import string
 
 import spacy
 import textacy
+from tqdm import tqdm
 
 from config import *
 from utils import load_json
-from tqdm import tqdm
+
 relation_map = load_json("relation_map.json")
 
 
@@ -17,7 +18,7 @@ class ExpansionConverter:
 
     def __init__(self):
         self.nlp = spacy.load('en_core_web_md')
-        self.srl_predictor = None
+        self.srl_predictor = "https://storage.googleapis.com/allennlp-public-models/structured-prediction-srl-bert.2020.12.15.tar.gz"
         # object and subject constants
         self.OBJECT_DEPS = {"dobj", "dative", "attr", "oprd"}
         self.SUBJECT_DEPS = {"nsubj", "nsubjpass", "csubj", "agent", "expl"}
@@ -30,15 +31,15 @@ class ExpansionConverter:
                              'is the', 'is this', 'why did', 'why is', 'are the', 'do', 'why']
 
         self.atomic_relations = ["oEffect",
-                            "oReact",
-                            "oWant",
-                            "xAttr",
-                            "xEffect",
-                            "xIntent",
-                            "xNeed",
-                            "xReact",
-                            "xReason",
-                            "xWant"]
+                                 "oReact",
+                                 "oWant",
+                                 "xAttr",
+                                 "xEffect",
+                                 "xIntent",
+                                 "xNeed",
+                                 "xReact",
+                                 "xReason",
+                                 "xWant"]
 
         self.excluded_relations = [
             "CausesDesire",
@@ -106,7 +107,8 @@ class ExpansionConverter:
                             if exclude_subject:
                                 sent = relation_map[relation.lower()].replace("{0}", "").replace("{1}", target)
                             else:
-                                sent = relation_map[relation.lower()].replace("{0}", source).replace("{1}", target) + "."
+                                sent = relation_map[relation.lower()].replace("{0}", source).replace("{1}",
+                                                                                                     target) + "."
                                 sent = sent.capitalize()
                             context.append(sent)
                             seen.add(target)
@@ -140,30 +142,53 @@ class ExpansionConverter:
         @return:
         """
         doc = self.nlp(input_event)
-        svos = [svo for svo in textacy.extract.subject_verb_object_triples(doc)]
+        personx = ""
 
+        # Try subjects
+        for token in doc:
+            print(token.dep_, token.text)
+            if ("subj" in token.dep_):
+                subtree = list(token.subtree)
+                start = subtree[0].i
+                end = subtree[-1].i + 1
+                return doc[start:end]
+        # Try objects
+        for token in doc:
+            if ("dobj" in token.dep_):
+                subtree = list(token.subtree)
+                start = subtree[0].i
+                end = subtree[-1].i + 1
+                return doc[start:end]
+
+        # Try SVOS and noun phrases
+        svos = [svo for svo in textacy.extract.subject_verb_object_triples(doc)]
         if len(svos) == 0:
             if use_chunk:
                 logger.info(f'No subject was found for the following sentence: "{input_event}". Using noun chunks.')
-                noun_chunks = [chunk for chunk in doc.noun_chunks]
+                noun_chunks = [chunk.text for chunk in doc.noun_chunks]
+                # noun_chunks = [np.text
+                #        for nc in doc.noun_chunks
+                #        for np in [
+                #            nc,
+                #            doc[
+                #            nc.root.left_edge.i
+                #            :nc.root.right_edge.i + 1]]]
+                # print(noun_chunks)
 
                 if len(noun_chunks) > 0:
-                    personx = noun_chunks[0].text
-                    # is_named_entity = noun_chunks[0].root.pos_ == "PROP"
-                    return personx
+                    return noun_chunks[0]
                 else:
                     logger.info("Didn't find noun chunks either, skipping this sentence.")
                     return ""
+
             else:
                 logger.warning(
                     f'No subject was found for the following sentence: "{input_event}". Skipping this sentence')
                 return ""
+
         else:
             subj_head = svos[0][0]
-            # print("SUBJ HEAD", subj_head)
-            # is_named_entity = subj_head[0].root.pos_ == "PROP"
             personx = subj_head[0].text
-            # " ".join([t.text for t in list(subj_head.lefts) + [subj_head] + list(subj_head.rights)])
             return personx
 
     def lexical_overlap(self, vocab, s1):
@@ -178,38 +203,18 @@ class ExpansionConverter:
                 return True
         return False
 
-    def get_personx_svo(self, sentence):
-        """
-
-        @param sentence:
-        @return:
-        """
-        doc = self.nlp(sentence)
-        sub = []
-        at = []
-        ve = []
-        for token in doc:
-            # is this a verb?
-            if token.pos_ == "VERB":
-                ve.append(token.text)
-            # is this the object?
-            if token.dep_ in self.OBJECT_DEPS or token.head.dep_ in self.OBJECT_DEPS:
-                at.append(token.text)
-            # is this the subject?
-            if token.dep_ in self.SUBJECT_DEPS or token.head.dep_ in self.SUBJECT_DEPS:
-                sub.append(token.text)
-        personx = sub[0]
-        return personx
-
     def get_personx_srl(self, sentence):
         """
 
         @param sentence:
         @return:
         """
-        results = self.srl_predictor.predict(
+        from allennlp.predictors.predictor import Predictor
+        predictor = Predictor.from_path(self.srl_predictor)
+        results = predictor.predict(
             sentence=sentence
         )
+        print(results)
         personx = {}
         for v in results['verbs']:
             # print(v['verb'])
@@ -247,18 +252,18 @@ if __name__ == '__main__':
     logger.info("Converting caption expansions to sentences")
     question_converter = ExpansionConverter()
     sample_questions = [
-        "is in the motorcyclist 's mouth", 
-        "Number birthday is probably being celebrated ", 
-        "best describes the pool of water", 
+        "is in the motorcyclist 's mouth",
+        "Number birthday is probably being celebrated ",
+        "best describes the pool of water",
         "The white substance is on top of the cupcakes",
         "type of device is sitting next to the laptop",
-        "A laptop computer sitting on top of a desk. type of device is sitting next to the laptop"]
+        "A laptop computer sitting on top of a desk"]
 
     print("Checking sample questions")
     for i in tqdm(range(len(sample_questions))):
         question = sample_questions[i]
         print("IN: ", question)
         print("======================")
-        qp = question_converter.get_personx(question)
+        qp = question_converter.get_personx_srl(question)
         print("SUBJ: ", qp)
         print("\n")
