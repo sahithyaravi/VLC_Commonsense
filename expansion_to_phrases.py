@@ -146,19 +146,19 @@ class ExpansionConverter:
 
         # Try subjects
         for token in doc:
-            print(token.dep_, token.text)
+            # print(token.dep_, token.text)
             if ("subj" in token.dep_):
                 subtree = list(token.subtree)
                 start = subtree[0].i
                 end = subtree[-1].i + 1
-                return doc[start:end]
+                return " ".join([a.text for a in doc[start:end]])
         # Try objects
         for token in doc:
             if ("dobj" in token.dep_):
                 subtree = list(token.subtree)
                 start = subtree[0].i
                 end = subtree[-1].i + 1
-                return doc[start:end]
+                return " ".join([a.text for a in doc[start:end]])
 
         # Try SVOS and noun phrases
         svos = [svo for svo in textacy.extract.subject_verb_object_triples(doc)]
@@ -198,8 +198,8 @@ class ExpansionConverter:
 
         for s2 in vocab:
             w2 = s2.split()
-            overlap = len(set(w1) & set(w2)) / len(w1)
-            if overlap > 0.8:
+            overlap = len(set(w1) & set(w2)) / (len(w1)+1)
+            if overlap > 0.7:
                 return True
         return False
 

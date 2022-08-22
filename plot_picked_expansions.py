@@ -13,7 +13,7 @@ def show_image(image_path="", text="", title="", savefig_path="out.png"):
     fig.suptitle(title)
     # plt.rcParams["figure.figsize"] = (25, 20)
 
-    gs = gridspec.GridSpec(1, 2, width_ratios=[1, 2])
+    gs = gridspec.GridSpec(1, 2, width_ratios=[1, 4])
     ax1 = plt.subplot(gs[0])
     ax2 = plt.subplot(gs[1])
     plt.rcParams.update({'font.size': 8})
@@ -39,7 +39,7 @@ if __name__ == '__main__':
     # Get questions as df
     df = pd.read_csv(question_csv)
  
-    for index, row in df.sample(10, random_state=50).iterrows():
+    for index, row in df.sample(10, random_state=33).iterrows():
         print(row)
         quest = row['question'] + "\n" + row["question_phrase"] + "\n" 
         qid = str(row['question_id'])
@@ -47,6 +47,6 @@ if __name__ == '__main__':
         image_path = f'{images_path}{img}'
         final_picked_expansions = ",".join(picked_expansions[img][qid])
         full_expansions = f"{raw_expansions[qid]} \n {row['direct_answers']}"
-        text_input = (quest + "\n" + full_expansions + "\n"+ final_picked_expansions)
+        text_input = (quest + "\n" + full_expansions + final_picked_expansions)
         show_image(image_path, text_input, title=captions[img], savefig_path=f"{qid}_out.png")
         plt.show()
