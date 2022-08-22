@@ -1,7 +1,7 @@
 import os
 import random
 from utils import load_json, imageid_to_path
-from analysis.plot_picked_expansions import show_image
+from plot_picked_expansions import show_image
 from config import *
 
 def get_count(res, answers):
@@ -11,14 +11,14 @@ def get_count(res, answers):
 
 if __name__ == '__main__':
     # check if all the paths provided are correct:
-    annotations = load_json(f'{data_root}/coco/aokvqa/aokvqa_v1p0_val.json')
-    questions = load_json(f'{data_root}/coco/aokvqa/aokvqa_v1p0_val.json')
-    captions = load_json(f'{data_root}/coco/aokvqa/commonsense/captions/captions_val_aokvqa.json')
-    expansion = load_json(f'{data_root}/coco/aokvqa/commonsense/expansions/sem1.2_aokvqa_val.json')
+    annotations = load_json("scratch/data/coco/aokvqa/aokvqa_v1p0_val.json")
+    questions = load_json("scratch/data/coco/aokvqa/aokvqa_v1p0_val.json")
+    captions = load_json(captions_path)
+    expansion = load_json(final_expansion_save_path)
 
     # the two results to compare
-    results1 = load_json('../result_files/aokvqa/captions_aokvqa_val2017.json')
-    results2 = load_json('../result_files/aokvqa/sem11_aokvqa_val2017.json')
+    results1 = load_json('result_files/aokvqa/captions_aokvqa_val2017.json')
+    results2 = load_json('result_files/aokvqa/sem11_aokvqa_val2017.json')
 
 
     ans_list = annotations

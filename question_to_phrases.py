@@ -22,8 +22,12 @@ class QuestionConverter:
 
     def __init__(self):
         self.nlp = spacy.load('en_core_web_md')
-        self.nlp.Defaults.stop_words |= {"background", "describes", "is", "describe", "was", "called", "were", "best"}
-        self.srl_predictor = Predictor.from_path( "https://storage.googleapis.com/allennlp-public-models/structured-prediction-srl-bert.2020.12.15.tar.gz")
+        self.custom_stops = {"background", "describes", "describe", "was", "called", "were", "best", "descriptive"}
+        self.nlp.Defaults.stop_words |= self.custom_stops
+        self.nlp.Defaults.stop_words.remove("of")
+        self.nlp.Defaults.stop_words.remove("top")
+        self.nlp.Defaults.stop_words.remove("on")
+        self.srl_predictor = Predictor.from_path("https://storage.googleapis.com/allennlp-public-models/openie-model.2020.03.26.tar.gz")
         self.constituency_parser = Predictor.from_path(
             "https://storage.googleapis.com/allennlp-public-models/elmo-constituency-parser-2020.02.10.tar.gz")
         # print(predictor.predict(
@@ -100,48 +104,48 @@ class QuestionConverter:
             return self.compress(sentence)
         return sentence.replace('_', '')
 
-    def compress(self, qn_phrase):
-        doc = self.nlp(qn_phrase.replace("_", ""))
-        final = []
-        for token in doc:
-            if not token.is_stop:
-                final.append(token.text)
+    def compress(self, qn_phrase, use_method="openie"):
+        qn_phrase =  qn_phrase.replace("_", "")
+        if use_method == "stop":
+            doc = self.nlp(qn_phrase.replace("_", ""))
+            final = []
+            for token in doc:
+                if not token.is_stop:
+                    final.append(token.text)
 
-        return " ".join(final)
+            return " ".join(final)
 
-        # Option2 use SRL
-        # results = self.srl_predictor.predict(
-        #     sentence=qn_phrase
-        # )
-        # verb_phrase = []
-        # for v in results['verbs']:
-        #     words = results['words']
-        #     tags = v['tags']
-        #     # print(words)
-        #     # print(tags)
-        #     new_words = [w for w, tag in zip(words, tags) if
-        #                  (('ARG1' in tag) or ('ARG0' in tag) or ('ARG2' in tag) or ('B-V' in tag)) and (
-        #                              w not in self.custom_stops)]
-        #     verb_phrase.extend(" ".join(new_words))
-        #
-        # if not verb_phrase:
-        #     return qn_phrase
-        # return max(verb_phrase, key=len).replace("_", "")
+        elif use_method == "openie":
+            results = self.srl_predictor.predict(
+                sentence=qn_phrase
+            )
+            verb_phrase = []
+            for v in results['verbs']:
+                words = results['words']
+                tags = v['tags']
+                new_words = [w for w, tag in zip(words, tags) if (('ARG1' in tag) or ('ARG0' in tag) or ('ARG2' in tag) or ('B-V' in tag)
+                                                                  or ("ARGM-NEG" in tag))
+                             and w not in self.custom_stops]
+                verb_phrase.append(" ".join(new_words))
 
-        # Option3: you can find only noun phrases
-        # doc = self.nlp(qn_phrase)
-        # nps = [np.text
-        #  for nc in doc.noun_chunks
-        #  for np in [
-        #      nc,
-        #      doc[
-        #      nc.root.left_edge.i
-        #      :nc.root.right_edge.i + 1]]]
-        #
-        # if nps:
-        #     return max(nps, key=len).replace("_", "")
-        # else:
-        #     return qn_phrase.replace("_", "")
+            if not verb_phrase:
+                return qn_phrase
+            return max(verb_phrase, key=len).replace("_", "")
+        else:
+            # Option3: you can find only noun phrases
+            doc = self.nlp(qn_phrase)
+            nps = [np.text
+             for nc in doc.noun_chunks
+             for np in [
+                 nc,
+                 doc[
+                 nc.root.left_edge.i
+                 :nc.root.right_edge.i + 1]]]
+
+            if nps:
+                return max(nps, key=len).replace("_", "")
+            else:
+                return qn_phrase.replace("_", "")
 
     def __constituents__(self, question):
         """

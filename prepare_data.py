@@ -5,7 +5,7 @@ from question_to_phrases import QuestionConverter, remove_qn_words
 from utils import load_json, qdict_to_df
 
 
-def prepare(mthd, df, captions=None, object_tags=None, compress=False):
+def prepare(mthd, df, captions=None, object_tags=None, compress=True):
     logger.info("Converting caption expansions to sentences")
     question_converter = QuestionConverter()
     questions = list(df['question'].values)
@@ -39,8 +39,8 @@ def prepare(mthd, df, captions=None, object_tags=None, compress=False):
 
 
         tokensq, tokensqp = question_converter.nlp(q), question_converter.nlp(qp)
-        nounsq = [token.text for token in tokensq if token.tag_ == 'NN' or token.tag_ == 'NNP']
-        nounsqp = [token.text for token in tokensqp if token.tag_ == 'NN' or token.tag_ == 'NNP']
+        nounsq = [token.text for token in tokensq if token.pos_ == 'NOUN' or token.tag_ == 'PROPN']
+        nounsqp = [token.text for token in tokensqp if token.pos_ == 'NOUN' or token.tag_ == 'PROPN']
         if not qp or len(nounsq) > len(nounsqp):
             df.at[idx, 'question_phrase'] = remove_qn_words(q.lower()).replace('?', '').strip()
             # print(df.at[idx, 'question_phrase'])
