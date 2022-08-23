@@ -8,33 +8,41 @@ from allennlp.predictors import Predictor
 
 from openie import StanfordOpenIE
 
-# https://stanfordnlp.github.io/CoreNLP/openie.html#api
-# Default value of openie.affinity_probability_cap was 1/3.
-properties = {
-    'openie.affinity_probability_cap': 2 / 3,
-}
+# global variables
+relation_map = load_json("relation_map.json")
+nlp = spacy.load('en_core_web_md')
 
 
 def svo(text='Barack Obama was born in Hawaii. Richard Manning wrote this sentence.'):
+    """
+
+    Parameters
+    ----------
+    text :
+
+    Returns
+    -------
+
+    """
+    properties = {
+        'openie.affinity_probability_cap': 2 / 3,
+    }
     with StanfordOpenIE(properties=properties) as client:
         print('Text: %s.' % text)
         return client.annotate(text)
 
 
-    # triples_corpus = client.annotate("I am an idiot.")
-    # print('Found %s triples in the corpus.' % len(triples_corpus))
-    # for triple in triples_corpus[:3]:
-    #     print('|-', triple)
-    # print('[...]')
 def triplets(df):
-    relation_map = load_json("relation_map.json")
-    keys = list(relation_map.keys())
-    nlp = spacy.load('en_core_web_md')
-    srl_predictor = Predictor.from_path(
-        "https://storage.googleapis.com/allennlp-public-models/openie-model.2020.03.26.tar.gz")
+    """
 
+    Parameters
+    ----------
+    df :
 
-    training_set = []
+    Returns
+    -------
+
+    """
     directional = ['right', 'left', 'top', 'bottom', 'behind', 'under', 'inside', 'over', 'front', 'back', 'near',
                    'next', 'middle']
     other = ['logo', 'symbol', 'name', 'company', 'mascot', 'word', 'brand', "country", "many"]
@@ -51,23 +59,101 @@ def triplets(df):
     for i in range(0, 10000, 500):
         r = list(df["rationales_str"].values)[i:i+500]
         rationale_list = "\n".join(r)
-        final.extend(svo(rationale_list))
+        svos = svo(rationale_list)
+        final.extend()
     d = pd.DataFrame(final)
     d.to_csv("triples1.csv")
 
-def eliminate_triples():
+
+def refine_triples():
+    """
+
+    Returns
+    -------
+
+    """
+    stop_words = nlp.Defaults.stop_words
+    stop_words |= {"he", "she", "it", "they", "place", "kind", "type"}
+    keys = list(relation_map.keys())
+    print(keys)
     triples = pd.read_csv("triples1.csv")
     print(triples.head())
-    triples.drop_duplicates(inplace=True, ignore_index=True)
-    triples.dropna(inplace=True, axis=0)
+
+    triples.drop_duplicates(inplace=True, ignore_index=True, subset=['subject', 'object'])
+    triples.dropna(inplace=True,subset=['object'])
     print(triples.shape)
+    indices = []
+    for idx, row in triples.iterrows():
+        subj = row["subject"].lower()
+        if subj in stop_words:
+            indices.append(idx)
+        if "answer" in row["object"].lower():
+            indices.append(idx)
+
+    triples.drop(triples.index[indices], inplace=True, axis=0)
+    # triples = triples.groupby(['subject', 'object'], as_index=False).max()
+    triples["length"] = triples["object"].str.len()
+    print(triples["length"].head())
+    triples = triples.sort_values("length", ascending=False).drop_duplicates(subset=["subject"], keep="first")
+    print(triples.columns)
+    indices_2 = []
+    for idx, row in triples.iterrows():
+        if "so" in row["relation"]:
+            triples.at[idx, 'relation'] = "Causes"
+        elif "can" in row["relation"]:
+            triples.at[idx, 'relation'] = "CapableOf"
+            triples.at[idx, 'object'] = triples.at[idx, 'object'].replace("can", "being")
+        elif "located" in row["relation"]:
+            triples.at[idx, 'relation'] = "AtLocation"
+        elif "has" in row["relation"]:
+            triples.at[idx, 'relation'] = "HasProperty"
+        elif "used" in row["relation"] or "use" in row["relation"]:
+            triples.at[idx, 'relation'] = "UsedFor"
+        elif "made" in row["relation"]:
+            triples.at[idx, 'relation'] = "MadeOf"
+        elif "is" or "are" in row["relation"]:
+            full_verb = triples.at[idx, 'relation'].split("is")
+            triples.at[idx, 'relation'] = "IsA"
+            if len(full_verb) > 1:
+                triples.at[idx, 'object'] = full_verb[1] +" "+ triples.at[idx, 'object']
+        else:
+            indices_2.append(idx)
+    triples.drop(triples.index[indices_2], inplace=True, axis=0)
+    triples.drop(["Unnamed: 0", "length"], axis=1, inplace=True)
+    print(triples.columns)
+
+    print(triples["relation"].nunique())
+    print(triples.shape)
+    N = triples.shape[0]
+    data = {}
+    data["train"] = triples[:int(N*0.8)]
+    data["val"] = triples[int(N * 0.8):int(N * 0.9)]
+    data["test"] = triples[int(N * 0.9):]
+
+    for split in ["train", "test","val"]:
+        for idx, row in data[split].iterrows():
+            head = row["subject"]
+            rel = row["relation"]
+            target = row["object"]
+            with open(f"{split}.source", "a") as f:
+                f.write("{} {} [GEN]".format(head, rel) +"\n")
+            with open(f"{split}.target", "a") as f:
+                f.write("{}".format(target)+"\n")
+
+
+
+    # train.to_csv("train.tsv", header=False, index=False, sep="\t")
+    # val.to_csv("val.tsv", header=False, index=False, sep="\t")
+    # test.to_csv("test.tsv", header=False, index=False, sep="\t")
+
+
 
 
 if __name__ == '__main__':
     questions_path = f'scratch/data/coco/aokvqa/aokvqa_v1p0_train.json'
     df = qdict_to_df(questions_path, "aokvqa")
     # triplets(df)
-    eliminate_triples()
+    refine_triples()
 
 # results = srl_predictor.predict(
 #     sentence=s
