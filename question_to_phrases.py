@@ -1,6 +1,5 @@
 import itertools
 import re
-from collections import defaultdict
 
 import spacy
 from allennlp.predictors import Predictor
@@ -27,13 +26,13 @@ class QuestionConverter:
         self.nlp.Defaults.stop_words.remove("of")
         self.nlp.Defaults.stop_words.remove("top")
         self.nlp.Defaults.stop_words.remove("on")
-        self.srl_predictor = Predictor.from_path("https://storage.googleapis.com/allennlp-public-models/openie-model.2020.03.26.tar.gz")
+        self.srl_predictor = Predictor.from_path(
+            "https://storage.googleapis.com/allennlp-public-models/openie-model.2020.03.26.tar.gz")
         self.constituency_parser = Predictor.from_path(
             "https://storage.googleapis.com/allennlp-public-models/elmo-constituency-parser-2020.02.10.tar.gz")
         # print(predictor.predict(
         #     sentence="If you bring $10 with you tomorrow, can you pay for me to eat too?."
         # ))
-
 
     def convert(self, question, compress_phrase=True):
         """
@@ -92,22 +91,21 @@ class QuestionConverter:
 
         # Couldn't convert to question - just remove the question mark
         if new_sentence is None:
-            new_sentence = actual_question.replace('?', '').strip()
+            new_sentence = actual_question.replace('?', '_').strip()
             new_sentence = remove_qn_words(new_sentence)
         # Capitalize the first word
         if capitalize_new_sentence:
             new_sentence = new_sentence.split()
             new_sentence = ' '.join([new_sentence[0].title()] + new_sentence[1:])
         output.append(new_sentence)
-        sentence = ' '.join(output).replace('?', '')
+        sentence = ' '.join(output).replace('?', '_')
         if compress_phrase:
             return self.compress(sentence)
-        return sentence.replace('_', '')
+        return sentence
 
-    def compress(self, qn_phrase, use_method="openie"):
-        qn_phrase =  qn_phrase.replace("_", "")
+    def compress(self, qn_phrase, use_method="noun"):
         if use_method == "stop":
-            doc = self.nlp(qn_phrase.replace("_", ""))
+            doc = self.nlp(qn_phrase)
             final = []
             for token in doc:
                 if not token.is_stop:
@@ -123,29 +121,30 @@ class QuestionConverter:
             for v in results['verbs']:
                 words = results['words']
                 tags = v['tags']
-                new_words = [w for w, tag in zip(words, tags) if (('ARG1' in tag) or ('ARG0' in tag) or ('ARG2' in tag) or ('B-V' in tag)
-                                                                  or ("ARGM-NEG" in tag))
+                new_words = [w for w, tag in zip(words, tags) if
+                             (('ARG1' in tag) or ('ARG0' in tag) or ('ARG2' in tag) or ('B-V' in tag)
+                              or ("ARGM-NEG" in tag))
                              and w not in self.custom_stops]
                 verb_phrase.append(" ".join(new_words))
 
             if not verb_phrase:
                 return qn_phrase
-            return max(verb_phrase, key=len).replace("_", "")
+            return max(verb_phrase, key=len)
         else:
             # Option3: you can find only noun phrases
             doc = self.nlp(qn_phrase)
             nps = [np.text
-             for nc in doc.noun_chunks
-             for np in [
-                 nc,
-                 doc[
-                 nc.root.left_edge.i
-                 :nc.root.right_edge.i + 1]]]
+                   for nc in doc.noun_chunks
+                   for np in [
+                       nc,
+                       doc[
+                       nc.root.left_edge.i
+                       :nc.root.right_edge.i + 1]]]
 
             if nps:
-                return max(nps, key=len).replace("_", "")
+                return max(nps, key=len)
             else:
-                return qn_phrase.replace("_", "")
+                return qn_phrase
 
     def __constituents__(self, question):
         """

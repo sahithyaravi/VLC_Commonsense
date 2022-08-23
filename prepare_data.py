@@ -16,14 +16,26 @@ def prepare(mthd, df, captions=None, object_tags=None, compress=True):
         question = questions[i]
         qp = question_converter.convert(question, compress)
         qps.append(qp)
-    if mthd == "semq":
-        df['question_phrase'] = qps
+    count = 0
+    df['question_phrase'] = qps
+    for idx, row in df.iterrows():
+        q = row['question']
+        qp = row['question_phrase']
 
-    elif mthd == "semcq":
+        tokensq, tokensqp = question_converter.nlp(q), question_converter.nlp(qp)
+        nounsq = [token.text for token in tokensq if token.pos_ == 'NOUN' or token.tag_ == 'PROPN']
+        nounsqp = [token.text for token in tokensqp if token.pos_ == 'NOUN' or token.tag_ == 'PROPN']
+        # print( len(nounsq), len(nounsqp))
+        if not qp or len(nounsq) > len(nounsqp):
+            df.at[idx, 'question_phrase'] = remove_qn_words(q.lower()).replace('?', '_').strip()
+            # print(df.at[idx, 'question_phrase'])
+            count += 1
+    df["question_phrase"] = df["question_phrase"].str.replace("_", "")
+    if mthd == "semcq":
         images_paths = list(df['image_path'].values)
         captions = [captions[i] for i in images_paths]
-        df['question_phrase'] = qps
-        df['question_caption_phrase'] = [c + " " + q for q, c in zip(qps, captions)]
+        df['question_caption_phrase'] = [(q + " and " + c.replace(".", "").lower()).capitalize() for q, c in
+                                         zip(list(df["question_phrase"].values), captions)]
 
     else:
         images_paths = list(df['image_path'].values)
@@ -32,26 +44,12 @@ def prepare(mthd, df, captions=None, object_tags=None, compress=True):
         df['question_phrase'] = qps
         df['question_caption_object_phrase'] = [c + o + " " + q for q, c, o in zip(qps, captions, objs)]
 
-    count = 0
-    for idx, row in df.iterrows():
-        q = row['question']
-        qp = row['question_phrase']
-
-
-        tokensq, tokensqp = question_converter.nlp(q), question_converter.nlp(qp)
-        nounsq = [token.text for token in tokensq if token.pos_ == 'NOUN' or token.tag_ == 'PROPN']
-        nounsqp = [token.text for token in tokensqp if token.pos_ == 'NOUN' or token.tag_ == 'PROPN']
-        if not qp or len(nounsq) > len(nounsqp):
-            df.at[idx, 'question_phrase'] = remove_qn_words(q.lower()).replace('?', '').strip()
-            # print(df.at[idx, 'question_phrase'])
-            count += 1
 
     print(f"{count}/{df.shape[0]}")
     df.to_csv(question_csv)
 
 
 if __name__ == '__main__':
-
     # use config.py to configure dataset name, questions path etc
     print(questions_path)
     print(captions_path)
