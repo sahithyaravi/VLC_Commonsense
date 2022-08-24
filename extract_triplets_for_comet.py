@@ -1,12 +1,8 @@
 import pandas as pd
-from tqdm import tqdm
-from question_to_phrases import QuestionConverter, remove_qn_words
-from utils import load_json, qdict_to_df
 import spacy
-import textacy
-from allennlp.predictors import Predictor
-
 from openie import StanfordOpenIE
+
+from utils import load_json, qdict_to_df
 
 # global variables
 relation_map = load_json("relation_map.json")
@@ -59,8 +55,17 @@ def triplets(df):
     df = df[~df.question.str.isdigit()]
     df["rationales_str"] = ["\n".join(map(str, l)) for l in df['rationales']]
     final = []
+    # # add a q_subject column
+    # subjects = []
+    # e = ExpansionConverter()
+    # for idx, row in df.iterrows():
+    #     subject = e.get_personx(row["question_phrase"])
+    #     subjects.append(subject)
+    # df["qsubject"] = subjects
+    # # try to assign the same subject
+
     for i in range(0, 15000, 500):
-        r = list(df["rationales_str"].values)[i:i+500]
+        r = list(df["rationales_str"].values)[i:i + 500]
         rationale_list = "\n".join(r)
         svos = svo(rationale_list)
         print(svos)
@@ -80,17 +85,21 @@ def refine_triples():
     stop_words = nlp.Defaults.stop_words
     stop_words |= {"he", "she", "it", "they", "place", "kind", "type"}
     keys = list(relation_map.keys())
-    print(keys)
     triples = pd.read_csv("svo_triples.csv")
-    print(triples.head())
-
     triples.drop_duplicates(inplace=True, ignore_index=True, subset=['subject', 'object'])
-    triples.dropna(inplace=True,subset=['object'])
-    print(triples.shape)
+    triples.dropna(inplace=True, subset=['object'])
+
     indices = []
     for idx, row in triples.iterrows():
         subj = row["subject"].lower()
+        obj = row["object"].lower()
         if subj in stop_words:
+            indices.append(idx)
+        if len(obj) < 3 or len(subj) < 3:
+            indices.append(idx)
+        if "$" in subj:
+            indices.append(idx)
+        if obj in stop_words:
             indices.append(idx)
         if "answer" in row["object"].lower():
             indices.append(idx)
@@ -98,36 +107,97 @@ def refine_triples():
     triples.drop(triples.index[indices], inplace=True, axis=0)
     # triples = triples.groupby(['subject', 'object'], as_index=False).max()
     triples["length"] = triples["object"].str.len()
-    print(triples["length"].head())
-    triples = triples.sort_values("length", ascending=False).drop_duplicates(subset=["subject", "relation"], keep="first")
+    triples = triples.sort_values("length", ascending=False).drop_duplicates(subset=["subject", "relation"],
+                                                                             keep="first")
+    triples.reset_index(inplace=True)
     triples.to_csv("svo_triples_filtered.csv")
-    print(triples.columns)
+    print(triples.shape)
     indices_2 = []
+    verbs = ["so", "can", "could", "has", "have", "is in",
+             "made", "consists", "part", "use",
+             "uses", "used", "located",
+             "is at", "is on", "always",
+             "is behind", "is near",
+             "is next to", "are behind", "are near",
+             "are next to", "not has",
+             "not", "don't", "is for", "want", "were",
+             "was",  "will", "because"
+             ]
+    relations = [
+        "Causes",
+        "CapableOf",
+        "CapableOf",
+        "HasProperty",
+        "HasProperty",
+        "HasProperty",
+        "MadeOf",
+        "MadeOf",
+        "PartOf",
+        "UsedFor",
+        "UsedFor",
+        "UsedFor",
+        "AtLocation",
+        "AtLocation",
+        "AtLocation",
+        "HasProperty",
+        "LocatedNear",
+        "LocatedNear",
+        "LocatedNear",
+        "LocatedNear",
+        "LocatedNear",
+        "LocatedNear",
+        "NotHasProperty",
+        "NotHasProperty",
+        "NotHasProperty",
+        "ObjectUse",
+        "XWant",
+        "isBefore",
+        "isBefore",
+        "isAfter",
+        "XReason"
+    ]
+    print(len(verbs), len(relations))
     for idx, row in triples.iterrows():
-        if "so" in row["relation"]:
-            triples.at[idx, 'relation'] = "Causes"
-        elif "can" in row["relation"]:
-            triples.at[idx, 'relation'] = "CapableOf"
-            triples.at[idx, 'object'] = triples.at[idx, 'object'].replace("can", "being")
-        elif "located" in row["relation"]:
-            triples.at[idx, 'relation'] = "AtLocation"
-        elif "has" in row["relation"] or "have" in row["relation"]:
-            triples.at[idx, 'relation'] = "HasProperty"
-        elif "used" in row["relation"] or "use" in row["relation"]:
-            triples.at[idx, 'relation'] = "UsedFor"
-        elif "made" in row["relation"]:
-            triples.at[idx, 'relation'] = "MadeOf"
-        elif "want" in row["relation"]:
-            triples.at[idx, 'relation'] = "XWant"
-        elif "want" or "are" in row["relation"]:
-            full_verb = triples.at[idx, 'relation'].split("is")
-            triples.at[idx, 'relation'] = "IsA"
-            if len(full_verb) > 1:
-                triples.at[idx, 'object'] = full_verb[1] +" "+ triples.at[idx, 'object']
-        elif "not" or "don't" in row["relation"]:
-            triples.at[idx, 'relation'] = "NotHasProperty"
-        else:
-            indices_2.append(idx)
+        matched = False
+        for v, rel in zip(verbs, relations):
+            # print(v, rel)
+            if v in row["relation"]:
+                verb = triples.at[idx, 'relation'].split(v)
+                if len(verb) > 1:
+                    triples.at[idx, 'object'] = verb[1] + triples.at[idx, 'object']
+                triples.at[idx, 'relation'] = rel
+                matched = True
+                break
+        if not matched:
+            if row["object"].startswith("because"):
+                triples.at[idx, 'relation'] = "XReason"
+            elif row["object"].startswith("so"):
+                triples.at[idx, 'relation'] = "Causes"
+            elif row["object"].startswith("are"):
+                triples.at[idx, 'relation'] = "isA"
+            else:
+                indices_2.append(idx)
+            # elif row["object"].startswith(key):
+            #     triples.at[idx, 'relation'] = value
+            #     matched = True
+            #     break
+
+        # if not matched:
+        #     if "is" in row["relation"]:
+        #         verb = triples.at[idx, 'relation'].split(key)
+        #         if len(verb) > 1:
+        #             triples.at[idx, 'object'] = verb[1] + triples.at[idx, 'object']
+        #         triples.at[idx, 'relation'] = value
+        #     else:
+        #         indices_2.append(idx)
+
+        # elif "are" in row["relation"]:
+        #     full_verb = triples.at[idx, 'relation'].split("is")
+        #     triples.at[idx, 'relation'] = "IsA"
+        #     if len(full_verb) > 1:
+        #         triples.at[idx, 'object'] = full_verb[1] + " " + triples.at[idx, 'object']
+        # triples.at[idx, 'object'] = triples.at[idx, 'object'].replace("can", "being")
+
     triples.drop(triples.index[indices_2], inplace=True, axis=0)
     triples.drop(["Unnamed: 0", "length"], axis=1, inplace=True)
     print(triples.columns)
@@ -135,10 +205,11 @@ def refine_triples():
     print(triples["relation"].nunique())
     print(triples.shape)
     triples.to_csv("converted_svos.csv")
+    print(triples["relation"].value_counts())
     shuffle_df = triples.sample(frac=1)
     N = triples.shape[0]
     data = {}
-    data["train"] = shuffle_df[:int(N*0.8)]
+    data["train"] = shuffle_df[:int(N * 0.8)]
     data["val"] = shuffle_df[int(N * 0.8):int(N * 0.9)]
     data["test"] = shuffle_df[int(N * 0.9):]
 
@@ -148,17 +219,13 @@ def refine_triples():
             rel = row["relation"]
             target = row["object"]
             with open(f"{split}.source", "a") as f:
-                f.write("{} {} [GEN]".format(head, rel) +"\n")
+                f.write("{} {} [GEN]".format(head, rel) + "\n")
             with open(f"{split}.target", "a") as f:
-                f.write("{}".format(target)+"\n")
-
-
+                f.write("{}".format(target) + "\n")
 
     # train.to_csv("train.tsv", header=False, index=False, sep="\t")
     # val.to_csv("val.tsv", header=False, index=False, sep="\t")
     # test.to_csv("test.tsv", header=False, index=False, sep="\t")
-
-
 
 
 if __name__ == '__main__':
