@@ -26,6 +26,10 @@ def svo(text='Barack Obama was born in Hawaii. Richard Manning wrote this senten
     """
     properties = {
         'openie.affinity_probability_cap': 2 / 3,
+        # 'openie.resolve_coref': True,
+        'openie.triple.all_nominals': True,
+        # "annotators": "dcoref,tokenize,ssplit,pos,lemma,depparse,ner,coref,mention,natlog,openie"
+        # 'openie.max_entailments_per_clause':1
     }
     with StanfordOpenIE(properties=properties) as client:
         print('Text: %s.' % text)
@@ -34,7 +38,6 @@ def svo(text='Barack Obama was born in Hawaii. Richard Manning wrote this senten
 
 def triplets(df):
     """
-
     Parameters
     ----------
     df :
@@ -56,13 +59,15 @@ def triplets(df):
     df = df[~df.question.str.isdigit()]
     df["rationales_str"] = ["\n".join(map(str, l)) for l in df['rationales']]
     final = []
-    for i in range(0, 10000, 500):
+    for i in range(0, 15000, 500):
         r = list(df["rationales_str"].values)[i:i+500]
         rationale_list = "\n".join(r)
         svos = svo(rationale_list)
-        final.extend()
+        print(svos)
+        final.extend(svos)
+
     d = pd.DataFrame(final)
-    d.to_csv("triples1.csv")
+    d.to_csv("svo_triples.csv")
 
 
 def refine_triples():
@@ -76,7 +81,7 @@ def refine_triples():
     stop_words |= {"he", "she", "it", "they", "place", "kind", "type"}
     keys = list(relation_map.keys())
     print(keys)
-    triples = pd.read_csv("triples1.csv")
+    triples = pd.read_csv("svo_triples.csv")
     print(triples.head())
 
     triples.drop_duplicates(inplace=True, ignore_index=True, subset=['subject', 'object'])
@@ -94,7 +99,8 @@ def refine_triples():
     # triples = triples.groupby(['subject', 'object'], as_index=False).max()
     triples["length"] = triples["object"].str.len()
     print(triples["length"].head())
-    triples = triples.sort_values("length", ascending=False).drop_duplicates(subset=["subject"], keep="first")
+    triples = triples.sort_values("length", ascending=False).drop_duplicates(subset=["subject", "relation"], keep="first")
+    triples.to_csv("svo_triples_filtered.csv")
     print(triples.columns)
     indices_2 = []
     for idx, row in triples.iterrows():
@@ -105,17 +111,21 @@ def refine_triples():
             triples.at[idx, 'object'] = triples.at[idx, 'object'].replace("can", "being")
         elif "located" in row["relation"]:
             triples.at[idx, 'relation'] = "AtLocation"
-        elif "has" in row["relation"]:
+        elif "has" in row["relation"] or "have" in row["relation"]:
             triples.at[idx, 'relation'] = "HasProperty"
         elif "used" in row["relation"] or "use" in row["relation"]:
             triples.at[idx, 'relation'] = "UsedFor"
         elif "made" in row["relation"]:
             triples.at[idx, 'relation'] = "MadeOf"
-        elif "is" or "are" in row["relation"]:
+        elif "want" in row["relation"]:
+            triples.at[idx, 'relation'] = "XWant"
+        elif "want" or "are" in row["relation"]:
             full_verb = triples.at[idx, 'relation'].split("is")
             triples.at[idx, 'relation'] = "IsA"
             if len(full_verb) > 1:
                 triples.at[idx, 'object'] = full_verb[1] +" "+ triples.at[idx, 'object']
+        elif "not" or "don't" in row["relation"]:
+            triples.at[idx, 'relation'] = "NotHasProperty"
         else:
             indices_2.append(idx)
     triples.drop(triples.index[indices_2], inplace=True, axis=0)
@@ -124,13 +134,15 @@ def refine_triples():
 
     print(triples["relation"].nunique())
     print(triples.shape)
+    triples.to_csv("converted_svos.csv")
+    shuffle_df = triples.sample(frac=1)
     N = triples.shape[0]
     data = {}
-    data["train"] = triples[:int(N*0.8)]
-    data["val"] = triples[int(N * 0.8):int(N * 0.9)]
-    data["test"] = triples[int(N * 0.9):]
+    data["train"] = shuffle_df[:int(N*0.8)]
+    data["val"] = shuffle_df[int(N * 0.8):int(N * 0.9)]
+    data["test"] = shuffle_df[int(N * 0.9):]
 
-    for split in ["train", "test","val"]:
+    for split in ["train", "test", "val"]:
         for idx, row in data[split].iterrows():
             head = row["subject"]
             rel = row["relation"]
