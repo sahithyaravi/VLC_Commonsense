@@ -162,9 +162,9 @@ def refine_triples():
         for v, rel in zip(verbs, relations):
             # print(v, rel)
             if v in row["relation"]:
-                verb = triples.at[idx, 'relation'].split(v)
-                if len(verb) > 1:
-                    triples.at[idx, 'object'] = verb[1] + triples.at[idx, 'object']
+                # verb = triples.at[idx, 'relation'].split(v)
+                # if len(verb) > 1:
+                #     triples.at[idx, 'object'] = verb[1] + triples.at[idx, 'object']
                 triples.at[idx, 'relation'] = rel
                 matched = True
                 break
@@ -173,9 +173,13 @@ def refine_triples():
                 triples.at[idx, 'relation'] = "XReason"
             elif row["object"].startswith("so"):
                 triples.at[idx, 'relation'] = "Causes"
-            elif row["object"].startswith("are"):
+            elif row["relation"] == "is":
                 triples.at[idx, 'relation'] = "isA"
             else:
+                indices_2.append(idx)
+        if "d" in row["object"].split(" "):
+            indices_2.append(idx)
+        if "s" in row["object"].split(" "):
                 indices_2.append(idx)
             # elif row["object"].startswith(key):
             #     triples.at[idx, 'relation'] = value

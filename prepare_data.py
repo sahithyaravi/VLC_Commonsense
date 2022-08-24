@@ -5,7 +5,7 @@ from question_to_phrases import QuestionConverter, remove_qn_words
 from utils import load_json, qdict_to_df
 
 
-def prepare(mthd, df, captions=None, object_tags=None, compress=True):
+def prepare(mthd, df, captions=None, object_tags=None, compress=False):
     logger.info("Converting caption expansions to sentences")
     question_converter = QuestionConverter()
     questions = list(df['question'].values)
