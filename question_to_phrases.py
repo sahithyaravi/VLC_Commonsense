@@ -96,12 +96,12 @@ class QuestionConverter:
         sentence = ' '.join(output).replace('?', '')
         logger.debug(sentence)
         # Couldn't capture all objects
-        tokensq, tokensqp = self.nlp(question), self.nlp(sentence)
-        nounsq = [token.text for token in tokensq if ((token.tag_ == 'NN') or (token.tag_ == 'NNP'))]
-        nounsqp = [token.text for token in tokensqp if ((token.tag_ == 'NN') or (token.tag_ == 'NNP'))]
-        if len(nounsq) > len(nounsqp):
-            sentence = actual_question.replace('?', ' _').strip()
-            sentence = remove_qn_words(sentence)
+        # tokensq, tokensqp = self.nlp(question), self.nlp(sentence)
+        # nounsq = [token.text for token in tokensq if ((token.tag_ == 'NN') or (token.tag_ == 'NNP'))]
+        # nounsqp = [token.text for token in tokensqp if ((token.tag_ == 'NN') or (token.tag_ == 'NNP'))]
+        # if len(nounsq) > len(nounsqp):
+        #     sentence = actual_question.replace('?', ' _').strip()
+        #     sentence = remove_qn_words(sentence)
         return sentence
 
     def compress(self, qn_phrase, use_method="noun"):

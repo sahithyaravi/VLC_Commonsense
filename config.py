@@ -23,16 +23,20 @@ split = 'train'
 # Configure all paths here
 if dataset == "okvqa":
     images_path = f'{data_root}/coco/{split}2014/'
-    questions_path = f'{data_root}/coco/okvqa/OpenEnded_mscoco_{split}_questions.json'
+    questions_path = f'{data_root}/coco/okvqa/OpenEnded_mscoco_{split}2014_questions.json'
     question_csv = questions_path.split("json")[0] + 'csv'
     captions_path = f'{data_root}/coco/okvqa/commonsense/captions/captions_{split}_vqa.json'
     captions_comet_expansions_path = f'{data_root}/coco/okvqa/commonsense/expansions/caption_comet_expansions_{split}_vqa_v3.json'
-    questions_comet_expansions_path = f'{data_root}/coco/okvqa/commonsense/expansions/okvqa_question_comet_expansions_{split}_vqa_v3.json'
-    caption_expansion_sentences_path = f'{data_root}/coco/okvqa/commonsense/expansions/caption_expansion_sentences_{split}_vqa.json'
-    question_expansion_sentences_path = f'{data_root}/coco/okvqa/commonsense/expansions/question_expansion_sentences_{split}_vqa.json'
+    questions_comet_expansions_path = f'{data_root}/coco/okvqa/commonsense/expansions/question_comet_expansions_{split}_{dataset}.json'
+    cq_comet_expansions_path = f'{data_root}/coco/okvqa/commonsense/expansions/cq_comet_expansions_{split}_{dataset}.json'
+    caption_expansion_sentences_path = f'{data_root}/coco/okvqa/commonsense/expansions/caption_expansion_sentences_{split}_{dataset}_{method}.{version}.json'
+    question_expansion_sentences_path = f'{data_root}/coco/okvqa/commonsense/expansions/question_expansion_sentences_{split}_{dataset}_{method}.{version}.json'
+    cq_expansion_sentences_path = f'{data_root}/coco/okvqa/commonsense/expansions/cq_expansion_sentences_{split}_{dataset}_{method}.{version}.json'
     final_expansion_save_path = f'{data_root}/coco/okvqa/commonsense/expansions/{method}.{version}_{dataset}_{split}'
     topk_caption_path = f'{data_root}/coco/okvqa/commonsense/expansions/top_cap_sentences_{split}_{dataset}.json'
     topk_qn_path = f'{data_root}/coco/okvqa/commonsense/expansions/top_qn_sentences_{split}_{dataset}.json'
+
+
 elif dataset == 'vcr':
     images_path = f"{data_root}/vcr/vcr1images/"
     questions_path = f'{data_root}/vcr/{split}.jsonl'

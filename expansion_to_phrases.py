@@ -230,7 +230,7 @@ class ExpansionConverter:
         for s2 in vocab:
             w2 = s2.split()
             overlap = len(set(w1) & set(w2)) / (len(w1)+1)
-            if overlap > 0.7:
+            if overlap > 0.6:
                 return True
         return False
 

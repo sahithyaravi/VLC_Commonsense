@@ -24,8 +24,8 @@ def prepare(mthd, df, captions=None, object_tags=None):
         qp = row['question_phrase']
 
         tokensq, tokensqp = question_converter.nlp(q), question_converter.nlp(qp)
-        nounsq = [token.text for token in tokensq if not token.is_stop and (token.pos_ == 'NOUN' or token.tag_ == 'PROPN')]
-        nounsqp = [token.text for token in tokensqp if token.pos_ == 'NOUN' or token.tag_ == 'PROPN']
+        nounsq = [token.text for token in tokensq if not token.is_stop and ((token.tag_ == 'NN') or (token.tag_ == 'NNP'))]
+        nounsqp = [token.text for token in tokensqp if ((token.tag_ == 'NN') or (token.tag_ == 'NNP'))]
         print( len(nounsq), len(nounsqp))
         if len(nounsq) < 2:
             zero_ents += 1
