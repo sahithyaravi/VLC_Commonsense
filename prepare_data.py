@@ -41,7 +41,7 @@ def prepare(mthd, df, captions=None, object_tags=None):
         df['question_caption_phrase'] = [(q + " and " + c.replace(".", "").lower()).capitalize() for q, c in
                                          zip(list(df["question_phrase"].values), captions)]
 
-    else:
+    if method == "semcqo":
         images_paths = list(df['image_path'].values)
         captions = [captions[i] for i in images_paths]
         objs = ["with" + ",".join(object_tags[i]) for i in images_paths]

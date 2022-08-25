@@ -1,12 +1,11 @@
-import json
-
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 import pandas as pd
 from matplotlib import gridspec
-from config import *
 
-from utils import load_json, save_json, image_path_to_id, qdict_to_df
+from config import *
+from utils import load_json
+
 
 def show_image(image_path="", text="", title="", savefig_path="out.png"):
     fig = plt.figure()
@@ -33,20 +32,21 @@ if __name__ == '__main__':
     picked_expansions = load_json(final_expansion_save_path + ".json")
     keys = list(picked_expansions.keys())
     print("Number of samples", len(keys))
-    captions = load_json(captions_path)
+    # captions = load_json(captions_path)
     raw_expansions = load_json(question_expansion_sentences_path)
 
     # Get questions as df
     df = pd.read_csv(question_csv)
- 
+
     for index, row in df.sample(50, random_state=33).iterrows():
         print(row)
-        quest = row['question'] + "\n" + row["question_phrase"] + "\n" 
+        quest = row['question'] + "\n" + row["question_phrase"] + "\n"
         qid = str(row['question_id'])
         img = row['image_path']
         image_path = f'{images_path}{img}'
         final_picked_expansions = ",".join(picked_expansions[img][qid])
-        full_expansions = f"{raw_expansions[qid]} \n {row['direct_answers']}"
-        text_input = ("\n\n\n" + quest + "\n" + full_expansions + "\n" + final_picked_expansions)
-        show_image(image_path, text_input, title=captions[img], savefig_path=f"{index}_out.png")
+        ans = row['direct_answers'] if 'direct_answers' in df.columns else ""
+        full_expansions = f"{raw_expansions[qid]} \n {ans}"
+        text_input = ("\n\n" + "\n" + full_expansions + "\n" + final_picked_expansions)
+        show_image(image_path, text_input, title=quest, savefig_path=f"{index}_out.png")
         plt.show()

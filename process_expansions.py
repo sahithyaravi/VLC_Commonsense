@@ -103,9 +103,7 @@ def search_expansions(expansions, questions_df, parallel=False, method="semq"):
 
 if __name__ == '__main__':
     # load captions, questions and expansions
-    captions = load_json(captions_path)
     object_tags = None
-    caption_expansions = load_json(captions_comet_expansions_path)
     if os.path.exists(question_csv):
         questions_df = pd.read_csv(question_csv)
     else:
@@ -117,6 +115,8 @@ if __name__ == '__main__':
     logger.info("Converting caption expansions to sentences")
 
     if method == "semc":
+        captions = load_json(captions_path)
+        caption_expansions = load_json(captions_comet_expansions_path)
         expansion_sentences = expansions_to_sentences(caption_expansions,
                                                       captions,
                                                       questions_df,
@@ -124,10 +124,11 @@ if __name__ == '__main__':
                                                       parallel=True,
                                                       method=method)
     elif method == "semq":
-        print(questions_df.head())
+        questions_df["question_id"] = questions_df["question_id"].astype(str)
         # if "question_phrase" not in questions_df.columns:
         #     questions_df = prepare("sem-q", questions_df)
-        question_phrases = dict(zip(list(questions_df["question_id"].values), list(questions_df["question_phrase"].values)))
+        question_phrases = dict(
+            zip(list(questions_df["question_id"].values), list(questions_df["question_phrase"].values)))
         question_expansions = load_json(questions_comet_expansions_path)
         expansion_sentences = expansions_to_sentences(question_expansions,
                                                       questions_df,
@@ -136,9 +137,10 @@ if __name__ == '__main__':
                                                       parallel=True,
                                                       method=method)
     elif method == "semcq":
-        if "question_caption_phrase" not in questions_df.columns:
-            questions_df = prepare("semcq", questions_df, captions)
-        question_phrases = dict(zip(list(questions_df["question_id"].values), list(questions_df["question_caption_phrase"].values)))
+        # if "question_caption_phrase" not in questions_df.columns:
+        #     questions_df = prepare("semcq", questions_df, captions)
+        question_phrases = dict(
+            zip(list(questions_df["question_id"].values), list(questions_df["question_caption_phrase"].values)))
         question_expansions = load_json(cq_comet_expansions_path)
         expansion_sentences = expansions_to_sentences(question_expansions,
                                                       questions_df,
@@ -147,9 +149,12 @@ if __name__ == '__main__':
                                                       parallel=True,
                                                       method=method)
     elif method == "semcqo":
-        if "question_caption_phrase" not in questions_df.columns:
-            questions_df = prepare("semcqo", questions_df, captions, object_tags)
-        question_phrases = dict(zip(list(questions_df["question_id"].values), list(questions_df["question_caption_object_phrase"].values)))
+        captions = load_json(captions_path)
+        caption_expansions = load_json(captions_comet_expansions_path)
+        # if "question_caption_phrase" not in questions_df.columns:
+        #     questions_df = prepare("semcqo", questions_df, captions, object_tags)
+        question_phrases = dict(
+            zip(list(questions_df["question_id"].values), list(questions_df["question_caption_object_phrase"].values)))
         question_expansions = load_json(questions_comet_expansions_path)
         expansion_sentences = expansions_to_sentences(question_expansions,
                                                       questions_df,
