@@ -32,8 +32,9 @@ def prepare(mthd, df, captions=None, object_tags=None):
 
         if not qp or len(nounsq) > len(nounsqp):
             df.at[idx, 'question_phrase'] = remove_qn_words(q.lower()).replace('?', '_').strip()
-            # print(df.at[idx, 'question_phrase'])
             count += 1
+        df.at[idx, 'question_phrase'] = q.replace("best", "")
+        df.at[idx, 'question_phrase'] = q.replace("describes", "")
 
     if mthd == "semcq":
         images_paths = list(df['image_path'].values)
@@ -51,6 +52,7 @@ def prepare(mthd, df, captions=None, object_tags=None):
 
     print(f"{count}/{df.shape[0]}")
     print(zero_ents)
+    df["question_phrase"] = df["question_phrase"].str.replace("_", "")
     df.to_csv(question_csv)
 
 
