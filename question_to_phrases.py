@@ -14,6 +14,7 @@ DETS = {'the', 'a', 'this', 'that', 'these', 'those'}
 QUESTION_WORDS = {'what', 'where', 'who', 'when', 'why', 'how'}
 
 
+
 class QuestionConverter:
     """
     Converting questions to (partial) declarative sentences.
@@ -21,20 +22,14 @@ class QuestionConverter:
 
     def __init__(self):
         self.nlp = spacy.load('en_core_web_md')
-        self.custom_stops = {"background", "describes", "describe", "was", "called", "were", "best", "descriptive"}
-        self.nlp.Defaults.stop_words |= self.custom_stops
-        self.nlp.Defaults.stop_words.remove("of")
-        self.nlp.Defaults.stop_words.remove("top")
-        self.nlp.Defaults.stop_words.remove("on")
-        self.srl_predictor = Predictor.from_path(
-            "https://storage.googleapis.com/allennlp-public-models/openie-model.2020.03.26.tar.gz")
-        self.constituency_parser = Predictor.from_path(
+        predictor = Predictor.from_path(
             "https://storage.googleapis.com/allennlp-public-models/elmo-constituency-parser-2020.02.10.tar.gz")
         # print(predictor.predict(
         #     sentence="If you bring $10 with you tomorrow, can you pay for me to eat too?."
         # ))
+        self.constituency_parser = predictor
 
-    def convert(self, question, compress_phrase=True):
+    def convert(self, question):
         """
         Convert a question to a declarative sentence
         :param question: string question, possibly followed up by declarative sentences
@@ -91,16 +86,22 @@ class QuestionConverter:
 
         # Couldn't convert to question - just remove the question mark
         if new_sentence is None:
-            new_sentence = actual_question.replace('?', '_').strip()
+            new_sentence = actual_question.replace('?', ' _').strip()
             new_sentence = remove_qn_words(new_sentence)
         # Capitalize the first word
         if capitalize_new_sentence:
             new_sentence = new_sentence.split()
             new_sentence = ' '.join([new_sentence[0].title()] + new_sentence[1:])
         output.append(new_sentence)
-        sentence = ' '.join(output).replace('?', '_')
-        if compress_phrase:
-            return self.compress(sentence)
+        sentence = ' '.join(output).replace('?', '')
+        logger.debug(sentence)
+        # Couldn't capture all objects
+        tokensq, tokensqp = self.nlp(question), self.nlp(sentence)
+        nounsq = [token.text for token in tokensq if ((token.tag_ == 'NN') or (token.tag_ == 'NNP'))]
+        nounsqp = [token.text for token in tokensqp if ((token.tag_ == 'NN') or (token.tag_ == 'NNP'))]
+        if len(nounsq) > len(nounsqp):
+            sentence = actual_question.replace('?', ' _').strip()
+            sentence = remove_qn_words(sentence)
         return sentence
 
     def compress(self, qn_phrase, use_method="noun"):

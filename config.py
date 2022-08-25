@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 # Methods to pick the final expansions
 method = 'semq'  # [sem1- caption, sem2-caption+question]
 version = '2'  # version of semantic search results
-dataset = 'aokvqa'  # dataset 'vcr', 'okvqa' or 'aokvqa
+dataset = 'okvqa'  # dataset 'vcr', 'okvqa' or 'aokvqa
 data_root = "scratch/data"  # root of the dataset folder arranged similar to VLC-BERT
 split = 'train'
 

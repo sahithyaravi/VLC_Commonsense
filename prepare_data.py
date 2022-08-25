@@ -5,7 +5,7 @@ from question_to_phrases import QuestionConverter, remove_qn_words
 from utils import load_json, qdict_to_df
 
 
-def prepare(mthd, df, captions=None, object_tags=None, compress=False):
+def prepare(mthd, df, captions=None, object_tags=None):
     logger.info("Converting caption expansions to sentences")
     question_converter = QuestionConverter()
     questions = list(df['question'].values)
@@ -14,23 +14,27 @@ def prepare(mthd, df, captions=None, object_tags=None, compress=False):
     qps = []
     for i in tqdm(range(len(questions))):
         question = questions[i]
-        qp = question_converter.convert(question, compress)
+        qp = question_converter.convert(question)
         qps.append(qp)
     count = 0
     df['question_phrase'] = qps
+    zero_ents = 0
     for idx, row in df.iterrows():
         q = row['question']
         qp = row['question_phrase']
 
         tokensq, tokensqp = question_converter.nlp(q), question_converter.nlp(qp)
-        nounsq = [token.text for token in tokensq if token.pos_ == 'NOUN' or token.tag_ == 'PROPN']
+        nounsq = [token.text for token in tokensq if not token.is_stop and (token.pos_ == 'NOUN' or token.tag_ == 'PROPN')]
         nounsqp = [token.text for token in tokensqp if token.pos_ == 'NOUN' or token.tag_ == 'PROPN']
-        # print( len(nounsq), len(nounsqp))
+        print( len(nounsq), len(nounsqp))
+        if len(nounsq) < 2:
+            zero_ents += 1
+
         if not qp or len(nounsq) > len(nounsqp):
             df.at[idx, 'question_phrase'] = remove_qn_words(q.lower()).replace('?', '_').strip()
             # print(df.at[idx, 'question_phrase'])
             count += 1
-    df["question_phrase"] = df["question_phrase"].str.replace("_", "")
+
     if mthd == "semcq":
         images_paths = list(df['image_path'].values)
         captions = [captions[i] for i in images_paths]
@@ -46,6 +50,7 @@ def prepare(mthd, df, captions=None, object_tags=None, compress=False):
 
 
     print(f"{count}/{df.shape[0]}")
+    print(zero_ents)
     df.to_csv(question_csv)
 
 
@@ -53,8 +58,8 @@ if __name__ == '__main__':
     # use config.py to configure dataset name, questions path etc
     print(questions_path)
     print(captions_path)
-    caps = load_json(captions_path)
+    # caps = load_json(captions_path)
     # object_tags = load_json(objects_path)
 
     df = qdict_to_df(questions_path, dataset)
-    prepare("semcq", df, caps)
+    prepare("semq", df)

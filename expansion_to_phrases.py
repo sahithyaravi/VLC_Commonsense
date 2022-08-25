@@ -102,12 +102,12 @@ class ExpansionConverter:
                         target = beam.lstrip().translate(str.maketrans('', '', string.punctuation))
                         if relation in self.atomic_relations and not self.is_person(source):
                             continue
-                        if target and "none" not in target and not self.lexical_overlap(seen,target):
+                        if target and "none" not in target and target not in seen and not self.lexical_overlap(seen,
+                                                                                                               target):
                             if exclude_subject:
                                 sent = relation_map[relation.lower()].replace("{0}", "").replace("{1}", target)
                             else:
-                                sent = relation_map[relation.lower()].replace("{0}", source).replace("{1}",
-                                                                                                     target) + "."
+                                sent = relation_map[relation.lower()].replace("{0}", source).replace("{1}", target) + "."
                                 sent = sent.capitalize()
                             context.append(sent)
                             seen.add(target)
@@ -132,8 +132,40 @@ class ExpansionConverter:
             if avg > 0.5:
                 return True
         return False
-
     def get_personx(self, input_event, use_chunk=True):
+        """
+        @param input_event:
+        @param use_chunk:
+        @return:
+        """
+        doc = self.nlp(input_event)
+        svos = [svo for svo in textacy.extract.subject_verb_object_triples(doc)]
+
+        if len(svos) == 0:
+            if use_chunk:
+                logger.info(f'No subject was found for the following sentence: "{input_event}". Using noun chunks.')
+                noun_chunks = [chunk for chunk in doc.noun_chunks]
+
+                if len(noun_chunks) > 0:
+                    personx = noun_chunks[0].text
+                    # is_named_entity = noun_chunks[0].root.pos_ == "PROP"
+                    return personx
+                else:
+                    logger.info("Didn't find noun chunks either, skipping this sentence.")
+                    return ""
+            else:
+                logger.warning(
+                    f'No subject was found for the following sentence: "{input_event}". Skipping this sentence')
+                return ""
+        else:
+            subj_head = svos[0][0]
+            print("SUBJ HEAD", subj_head)
+            # is_named_entity = subj_head[0].root.pos_ == "PROP"
+            personx = subj_head[0].text
+            # " ".join([t.text for t in list(subj_head.lefts) + [subj_head] + list(subj_head.rights)])
+            return personx
+
+    def get_personx_long(self, input_event, use_chunk=True):
         """
 
         @param input_event:
