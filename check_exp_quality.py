@@ -66,15 +66,17 @@ def check_exp_quality_aok(exp_name, set_name):
 
 def check_exp_quality_ok(exp_name, set_name):
     # Load questions:
-    annotations = _load_json(f'scratch/data/coco/annotations/mscoco_{set_name}2014_annotations.json')["annotations"]
+    annotations = _load_json(f'/Users/sahiravi/Documents/Research/VL project/scratch/data/coco/annotations/mscoco_{set_name}2014_annotations.json')["annotations"]
 
     # Load expansions:
-    expansions = _load_json('scratch/data/coco/okvqa/commonsense/expansions/' + exp_name + '_okvqa_' + set_name + '.json')
+    expansions = _load_json('/Users/sahiravi/Documents/Research/VL project/scratch/data/coco/okvqa/commonsense/expansions/' + exp_name + '_okvqa_' + set_name + '.json')
 
+    # Load raw expansions:
+    raw_expansions = _load_json(f'/Users/sahiravi/Documents/Research/VL project/scratch/data/coco/okvqa/commonsense/expansions/question_expansion_sentences_{set_name}_okvqa_{exp_name}.json')
     helpful = 0
     total = 0
     common_tokens = {}
-
+    raw_commons = {}
     for q in annotations:
         q_id = q['question_id']
         image_id = str(q['image_id'])
@@ -84,12 +86,16 @@ def check_exp_quality_ok(exp_name, set_name):
         ans_text = ans_text.lower()
         n_zeros = 12 - len(str(image_id))
         filename = f'COCO_{set_name}2014_' + n_zeros * '0' + image_id + '.jpg'
+        raw_exp_text_len = len(raw_expansions[str(q_id)])
+        #print(raw_exp_text_len)
         try:
             exp_text = expansions[filename][str(q_id)][0]
         except KeyError:
             exp_text = expansions[image_id][str(q_id)]
         exp_text = exp_text.split('.')[:5]
-        exp_text = ' '.join(exp_text)
+        picked_exp_text = ' '.join(exp_text)
+
+        exp_text = picked_exp_text
 
         exp_text = exp_text.translate(str.maketrans('', '', string.punctuation))
         exp_text = exp_text.lower()
@@ -107,10 +113,12 @@ def check_exp_quality_ok(exp_name, set_name):
                     common_tokens[token] = 1
                 else:
                     common_tokens[token] += 1
-
         if is_helpful:
             helpful += 1
         total += 1
+
+
+
 
     common_tokens = dict(sorted(common_tokens.items(), key=lambda item: item[1], reverse=True))
     common_tokens = list(common_tokens.keys())[:10]
@@ -119,9 +127,9 @@ def check_exp_quality_ok(exp_name, set_name):
 
 if __name__ == '__main__':
 
-    exp_names = ['semq.2']
+    exp_names = ['semq.3']
     sets = ['train', 'val']
-    datasets = ["okvqa", "aokvqa"]
+    datasets = ["okvqa"]
     for dataset in datasets:
         for exp_name in exp_names:
             for set_name in sets:
