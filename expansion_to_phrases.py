@@ -54,15 +54,10 @@ class ExpansionConverter:
             "HinderedBy",
             "InheritsFrom",
             "InstanceOf",
-            "IsA",
-            "LocatedNear",
             "MotivatedByGoal",
-            "NotCapableOf",
             "NotDesires",
             "NotHasA",
-            "NotHasProperty",
             "NotIsA",
-            "NotMadeOf",
             "ReceivesAction",
             "RelatedTo",
             "SymbolOf",
@@ -83,10 +78,10 @@ class ExpansionConverter:
         excluded = [x.lower() for x in self.excluded_relations]
         personx = ""
         if question:
-            # For negative questions, do not exclude not relations
-            if "not" in question.split(" "):
-                excluded.remove("notmadeof")
-                excluded.remove("nothasproperty")
+            # # For negative questions, do not exclude not relations
+            # if "not" in question.split(" "):
+            #     excluded.remove("notmadeof")
+            #     excluded.remove("nothasproperty")
             personx_q = self.get_personx(question.replace("_", ""))
 
         # if not question or not personx:
@@ -116,16 +111,15 @@ class ExpansionConverter:
 
     def is_person(self, word):
         if word:
-            living_beings_vocab = ["person", "people", "man", "woman", "girl", "boy", "child"
-                                                                                      "bird", "cat", "dog", "animal",
-                                   "insect", "pet"]
+            living_beings_vocab = ["person", "people", "man", "woman", "girl", "boy", "child",
+                                    "bird", "cat", "dog", "animal", "insect", "pet", "baby"]
             refdoc = self.nlp(" ".join(living_beings_vocab))
             tokens = [token for token in self.nlp(word) if token.pos_ == "NOUN" or token.pos_ == "PROPN"]
             avg = 0
             for token2 in tokens:
                 for token in refdoc:
                     sim = token.similarity(token2)
-                    if sim == 1:
+                    if sim >= 0.7:
                         return True
                     avg += sim
             avg = avg / len(refdoc)
@@ -222,7 +216,7 @@ class ExpansionConverter:
             personx = subj_head[0].text
             return personx
 
-    def lexical_overlap(self, vocab, s1, threshold=0.6):
+    def lexical_overlap(self, vocab, s1, threshold=0.7):
         if not vocab or not s1:
             return 0
         w1 = s1.split()

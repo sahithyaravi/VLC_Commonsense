@@ -9,10 +9,11 @@ logger = logging.getLogger(__name__)
 # Configure parameters for semantic search
 # Methods to pick the final expansions
 method = 'semq'  # [sem1- caption, sem2-caption+question]
-version = '3'  # version of semantic search results
-dataset = 'aokvqa'  # dataset 'vcr', 'okvqa' or 'aokvqa
+version = '4'  # version of semantic search results
+dataset = 'okvqa'  # dataset 'vcr', 'okvqa' or 'aokvqa
 data_root = "/Users/sahiravi/Documents/Research/VL project/scratch/data"  # root of the dataset folder arranged similar to VLC-BERT
-split = 'train'
+data_root = "/ubc/cs/research/nlp/sahiravi/vlc_transformer/scratch/data"
+split = 'val'
 
 """
 @param: model_for_qn_search

@@ -12,15 +12,16 @@ else:
 
 # Define image and sentence embedder
 image_model = "clip-ViT-B-32"
-semantic_search_model = "msmarco-roberta-base-v3"
+semantic_search_model = "sbert"
 # options = "multi-qa-mpnet-base-dot-v1" # "all-mpnet-base-v2"  # msmarco-roberta-base-ance-firstp - dot
+# msmarco-roberta-base-v3"
 image_embedder = SentenceTransformer(image_model, device=device)
 sentence_embedder = SentenceTransformer(semantic_search_model, device=device)
 # else:
 #     sentence_embedder = image_embedder
 
 
-def symmetric_search(queries, corpus, k=10, threshold=0.1):
+def symmetric_search(queries, corpus, k=15, threshold=0.1):
     corpus_embeddings = sentence_embedder.encode(corpus, convert_to_tensor=True, device=device)
     top_k = min(k, len(corpus))
     result = []
