@@ -15,6 +15,7 @@ data_root = "/Users/sahiravi/Documents/Research/VL project/scratch/data"  # root
 data_root = "/ubc/cs/research/nlp/sahiravi/vlc_transformer/scratch/data"
 split = 'val'
 
+
 """
 @param: model_for_qn_search
 "clip" - uses clip for both image and semantic search

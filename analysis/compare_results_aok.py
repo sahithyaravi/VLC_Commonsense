@@ -1,7 +1,7 @@
 import os
 import random
 from utils import load_json, imageid_to_path
-from plot_picked_expansions import show_image
+from analysis.plot_picked_expansions import show_image
 from config import *
 
 def get_count(res, answers):
@@ -17,8 +17,8 @@ if __name__ == '__main__':
     expansion = load_json(final_expansion_save_path)
 
     # the two results to compare
-    results1 = load_json('result_files/aokvqa/captions_aokvqa_val2017.json')
-    results2 = load_json('result_files/aokvqa/sem11_aokvqa_val2017.json')
+    results1 = load_json('../result_files/aokvqa/captions_aokvqa_val2017.json')
+    results2 = load_json('../result_files/aokvqa/sem11_aokvqa_val2017.json')
 
 
     ans_list = annotations

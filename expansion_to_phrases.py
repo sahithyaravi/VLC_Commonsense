@@ -97,8 +97,8 @@ class ExpansionConverter:
                         target = beam.lstrip().translate(str.maketrans('', '', string.punctuation))
                         if relation in self.atomic_relations and not self.is_person(source):
                             continue
-                        if target and target!=source and "none" not in target and target not in seen and not self.lexical_overlap(seen,
-                                                                                                               target):
+                        if target and target!=source and ("none" not in target) and (target not in seen) and (not self.lexical_overlap(seen,
+                                                                                                               target)):
                             if exclude_subject:
                                 sent = relation_map[relation.lower()].replace("{0}", "").replace("{1}", target)
                             else:
