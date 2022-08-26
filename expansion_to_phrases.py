@@ -102,7 +102,7 @@ class ExpansionConverter:
                         target = beam.lstrip().translate(str.maketrans('', '', string.punctuation))
                         if relation in self.atomic_relations and not self.is_person(source):
                             continue
-                        if target and "none" not in target and target not in seen and not self.lexical_overlap(seen,
+                        if target and target!=source and "none" not in target and target not in seen and not self.lexical_overlap(seen,
                                                                                                                target):
                             if exclude_subject:
                                 sent = relation_map[relation.lower()].replace("{0}", "").replace("{1}", target)
@@ -222,7 +222,7 @@ class ExpansionConverter:
             personx = subj_head[0].text
             return personx
 
-    def lexical_overlap(self, vocab, s1):
+    def lexical_overlap(self, vocab, s1, threshold=0.6):
         if not vocab or not s1:
             return 0
         w1 = s1.split()
@@ -230,7 +230,7 @@ class ExpansionConverter:
         for s2 in vocab:
             w2 = s2.split()
             overlap = len(set(w1) & set(w2)) / (len(w1)+1)
-            if overlap > 0.6:
+            if overlap > threshold:
                 return True
         return False
 

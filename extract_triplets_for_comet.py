@@ -131,45 +131,51 @@ def refine_triples():
         ("next to", "LocatedNear"),
         ("not", "NotHasProperty"),
         ("don't", "NotHasProperty"),
-        ("want", "XWant"),
+        ("want", "XWant"), # super bad
         ("was", "isBefore"),
         ("were", "isBefore"),
         ("will", "isAfter"),
         ("is for", "ObjectUse"),
-        ("because", "XReason")
+        ("because", "Causes")
     ]
 
     for idx, row in triples.iterrows():
         subj = row["subject"]
         obj = row["object"].lower()
         v = row["relation"].lower()
-        doc = nlp(" ".join([subj, v, obj]))
+        text = " ".join([subj, v, obj])
+        doc = nlp(text)
         for token in doc:
             if not token.tag_ != 'NN' and token.tag_ != 'NNP' and token.text == subj:
                 indices_2.append(idx)
         matched = False
         for v, rel in verbs_relations:
-            # print(v, rel)
-            if v in row["relation"]:
-                verb = triples.at[idx, 'relation'].split(v)
-                if len(verb) > 1 and verb[1] != "can":
-                    triples.at[idx, 'object'] = verb[1] + " " + triples.at[idx, 'object']
-                triples.at[idx, 'relation'] = rel
-                matched = True
-                break
-        if not matched:
-            if row["object"].startswith("because"):
-                triples.at[idx, 'relation'] = "XReason"
-            elif row["object"].startswith("so"):
-                triples.at[idx, 'relation'] = "Causes"
-            elif row["relation"] == "is":
-                triples.at[idx, 'relation'] = "isA"
-            else:
+            if v in text:
+                rel = verbs_relations[v]
+                parts = text.split(rel)
+                if len(parts) == 3:
+                    head, rel, target = parts[0], rel, parts[2]
+                    if v == "because":
+                        head, rel, target = parts[2], rel, parts[0]
+                    triples.at[idx, 'relation'] = rel
+                    triples.at[idx, 'subject'] = head
+                    triples.at[idx, 'object'] = target
+                    matched = True
+                    break
+            if not matched:
                 indices_2.append(idx)
-        if "d" in row["object"].split(" "):
-            indices_2.append(idx)
-        if "s" in row["object"].split(" "):
-            indices_2.append(idx)
+        #     if row["object"].startswith("because"):
+        #         triples.at[idx, 'relation'] = "XReason"
+        #     elif row["object"].startswith("so"):
+        #         triples.at[idx, 'relation'] = "Causes"
+        #     elif row["relation"] == "is":
+        #         triples.at[idx, 'relation'] = "isA"
+        #     else:
+        #
+        # if "d" in row["object"].split(" "):
+        #     indices_2.append(idx)
+        # if "s" in row["object"].split(" "):
+        #     indices_2.append(idx)
 
     triples.drop(triples.index[indices_2], inplace=True, axis=0)
     triples.drop(["Unnamed: 0", "length_s", "length_o"], axis=1, inplace=True)
@@ -202,7 +208,7 @@ def refine_triples():
 
 
 if __name__ == '__main__':
-    questions_path = f'scratch/data/coco/aokvqa/aokvqa_v1p0_train.json'
-    # triplets(qdict_to_df(questions_path, "aokvqa"))
+    questions_path = "/Users/sahiravi/Documents/Research/VL project/scratch/data/coco/aokvqa/aokvqa_v1p0_train.json"
+    triplets(qdict_to_df(questions_path, "aokvqa"))
     refine_triples()
 

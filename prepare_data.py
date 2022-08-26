@@ -3,19 +3,31 @@ from tqdm import tqdm
 from config import *
 from question_to_phrases import QuestionConverter, remove_qn_words
 from utils import load_json, qdict_to_df
+from joblib import Parallel, delayed
+
+question_converter = QuestionConverter()
 
 
-def prepare(mthd, df, captions=None, object_tags=None):
+def convert_one_qn(question):
+    return question_converter.convert(question)
+
+
+def prepare(mthd, df, captions=None, object_tags=None, parallel=False):
     logger.info("Converting caption expansions to sentences")
-    question_converter = QuestionConverter()
     questions = list(df['question'].values)
     logger.info("Questions dataframe: ", df.head())
     print("Processing questions file......")
-    qps = []
-    for i in tqdm(range(len(questions))):
-        question = questions[i]
-        qp = question_converter.convert(question)
-        qps.append(qp)
+
+    if parallel:
+        logger.info("Processing qn phrases in parallel")
+        qps = zip(*Parallel(n_jobs=4)(
+            delayed(convert_one_qn)(questions[i]) for i in
+            tqdm(range(len(questions)))))
+    else:
+        qps = []
+        for i in tqdm(range(len(questions))):
+            q = questions[i]
+            qps.append(convert_one_qn(q))
     count = 0
     df['question_phrase'] = qps
     zero_ents = 0
@@ -24,17 +36,17 @@ def prepare(mthd, df, captions=None, object_tags=None):
         qp = row['question_phrase']
 
         tokensq, tokensqp = question_converter.nlp(q), question_converter.nlp(qp)
-        nounsq = [token.text for token in tokensq if not token.is_stop and ((token.tag_ == 'NN') or (token.tag_ == 'NNP'))]
-        nounsqp = [token.text for token in tokensqp if ((token.tag_ == 'NN') or (token.tag_ == 'NNP'))]
-        print( len(nounsq), len(nounsqp))
+        nounsq = [token.text for token in tokensq if  token.tag_ == 'NN' or token.tag_ == 'NNP' or token.tag_ == "CD"]
+        nounsqp = [token.text for token in tokensqp if token.tag_ == 'NN' or token.tag_ == 'NNP' or token.tag_ == "CD"]
+
         if len(nounsq) < 2:
             zero_ents += 1
 
-        if not qp or len(nounsq) > len(nounsqp):
+        if len(nounsq) > len(nounsqp):
             df.at[idx, 'question_phrase'] = remove_qn_words(q.lower()).replace('?', '_').strip()
             count += 1
-        df.at[idx, 'question_phrase'] = q.replace("best", "")
-        df.at[idx, 'question_phrase'] = q.replace("describes", "")
+        df.at[idx, 'question_phrase'] = df.at[idx, 'question_phrase'].replace("best", "")
+        df.at[idx, 'question_phrase'] = df.at[idx, 'question_phrase'].replace("describes", "")
 
     if mthd == "semcq":
         images_paths = list(df['image_path'].values)

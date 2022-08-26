@@ -1,4 +1,5 @@
 import itertools
+import logging
 import re
 
 import spacy
@@ -8,7 +9,7 @@ from tqdm import tqdm
 from config import *
 
 logger = logging.getLogger(__name__)
-
+logger.setLevel(logging.ERROR)
 Q_SENT = 'SBARQ'  # Question sentence
 DETS = {'the', 'a', 'this', 'that', 'these', 'those'}
 QUESTION_WORDS = {'what', 'where', 'who', 'when', 'why', 'how'}
@@ -21,7 +22,7 @@ class QuestionConverter:
     """
 
     def __init__(self):
-        self.nlp = spacy.load('en_core_web_md')
+        self.nlp = spacy.load('en_core_web_lg')
         predictor = Predictor.from_path(
             "https://storage.googleapis.com/allennlp-public-models/elmo-constituency-parser-2020.02.10.tar.gz")
         # print(predictor.predict(
@@ -94,7 +95,7 @@ class QuestionConverter:
             new_sentence = ' '.join([new_sentence[0].title()] + new_sentence[1:])
         output.append(new_sentence)
         sentence = ' '.join(output).replace('?', '')
-        logger.debug(sentence)
+        # logger.debug(sentence)
         # Couldn't capture all objects
         tokensq, tokensqp = self.nlp(question), self.nlp(sentence)
         nounsq = [token.text for token in tokensq if ((token.tag_ == 'NN') or (token.tag_ == 'NNP'))]
