@@ -7,7 +7,7 @@ from nltk.corpus import stopwords
 from pytorch_pretrained_bert import BertTokenizer
 from sentence_transformers import SentenceTransformer, InputExample, losses, util
 from torch.utils.data import DataLoader
-
+import pandas as pd
 nltk.download('stopwords')
 root = "/Users/sahiravi/Documents/Research/VL project/scratch/data/coco"
 root = "/ubc/cs/research/nlp/sahiravi/vlc_transformer/scratch/data/coco"
@@ -23,6 +23,78 @@ def _load_json(path):
 def _intersection(lst1, lst2):
     return len(set(lst1).intersection(lst2)) > 0
 
+def prepare_data_ok(exp_name, set_name, base_dir):
+    # Load questions:
+    annotations = _load_json(f'{root}/okvqa/mscoco_{set_name}2014_annotations.json')["annotations"]
+   
+    questions_path = f'{root}/okvqa/OpenEnded_mscoco_{set_name}2014_questions.json'
+    question_csv = questions_path.split("json")[0] + 'csv'
+    questions_df = pd.read_csv(question_csv)
+    questions_df["question_id"] = questions_df["question_id"].astype(str)
+    questions = dict(
+            zip(list(questions_df["question_id"].values), list(questions_df["question"].values)))
+
+    # Load expansions:
+    expansions = _load_json(
+        f'{root}/okvqa/commonsense/expansions/' + exp_name + '_okvqa_' + set_name + '.json')
+
+    # Load raw expansions:
+    raw_expansions = _load_json(f'{root}/okvqa/commonsense/expansions/question_expansion_sentences_{set_name}_okvqa_{exp_name}.json')
+
+    good_data_list = []
+    bad_data_list = []
+    data_list = []
+
+    for q in annotations:
+        q_id = q['question_id']
+        im_id = q['image_id']
+        raw_ques = questions[str(q_id)]
+
+        ans = q["answers"]
+        ans_text = ' '.join([a['answer'] for a in ans])
+        ans_text = ans_text.translate(str.maketrans('', '', string.punctuation))
+        ans_text = ans_text.lower()
+
+        ans_tokens = tokenizer.tokenize(ans_text)
+        ans_tokens = [t for t in ans_tokens if t not in s]
+
+        #exps = expansions['{:012d}.jpg'.format(im_id)][str(q_id)][0]
+        #exps = exps.split('.')
+        
+        exps = raw_expansions[str(q_id)]
+        
+        exps = [e.strip() + '.' for e in exps]
+
+        for exp_text in exps:
+
+            raw_text = exp_text
+
+            exp_text = exp_text.translate(str.maketrans('', '', string.punctuation))
+            exp_text = exp_text.lower()
+
+            exp_tokens = tokenizer.tokenize(exp_text)
+            exp_tokens = [t for t in exp_tokens if t not in s]
+
+            if _intersection(ans_tokens, exp_tokens):
+                good_data_list.append({'sents': [raw_ques, raw_text], 'label': 0.8})
+            else:
+                bad_data_list.append({'sents': [raw_ques, raw_text], 'label': 0.2})
+
+    random.shuffle(bad_data_list)
+    bad_data_list = bad_data_list[:len(good_data_list)]
+    data_list = good_data_list + bad_data_list
+    random.shuffle(data_list)
+
+    print('good:', len(good_data_list))
+    print('bad:', len(bad_data_list))
+    print('total:', len(data_list))
+
+    # Save data:
+    savepath = os.path.join(base_dir, exp_name + '_okvqa_' + set_name + '.json')
+    with open(savepath, 'w') as f:
+        json.dump(data_list, f, indent=4)
+
+    return savepath
 
 def prepare_data(exp_name, set_name, base_dir):
     # Load questions:
@@ -104,7 +176,8 @@ def train(train_file, base_dir):
     train_loss = losses.CosineSimilarityLoss(model)
 
     # Tune the model
-    model.fit(train_objectives=[(train_dataloader, train_loss)], epochs=2, warmup_steps=100, output_path=base_dir)
+    model.fit(train_objectives=[(train_dataloader, train_loss)],optimizer_params ={'lr': 1e-5},
+     epochs=5, warmup_steps=1000, output_path=base_dir)
 
 
 def test(base_dir):
@@ -132,11 +205,19 @@ def test(base_dir):
 
 
 if __name__ == '__main__':
+    aok = False
+    if aok:
+        base_path = 'sbert-aok/'
+        if not os.path.exists(base_path):
+            os.makedirs(base_path)
+        savepath = prepare_data('semq.4', 'train', base_path)
+        train(savepath, base_path)
+        test(base_path)
+    else:
+        base_path = 'sbert-ok/'
+        if not os.path.exists(base_path):
+            os.makedirs(base_path)
+        savepath = prepare_data_ok('semq.4', 'train', base_path)
+        train(savepath, base_path)
+        test(base_path)
 
-    base_path = 'sbert/'
-    if not os.path.exists(base_path):
-        os.makedirs(base_path)
-
-    savepath = prepare_data('semq.2', 'train', base_path)
-    train(savepath, base_path)
-    test(base_path)

@@ -9,11 +9,11 @@ logger = logging.getLogger(__name__)
 # Configure parameters for semantic search
 # Methods to pick the final expansions
 method = 'semq'  # [sem1- caption, sem2-caption+question]
-version = '4'  # version of semantic search results
+version = '5'  # version of semantic search results
 dataset = 'okvqa'  # dataset 'vcr', 'okvqa' or 'aokvqa
 data_root = "/Users/sahiravi/Documents/Research/VL project/scratch/data"  # root of the dataset folder arranged similar to VLC-BERT
 data_root = "/ubc/cs/research/nlp/sahiravi/vlc_transformer/scratch/data"
-split = 'val'
+split = 'train'
 
 
 """
@@ -29,7 +29,7 @@ if dataset == "okvqa":
     question_csv = questions_path.split("json")[0] + 'csv'
     captions_path = f'{data_root}/coco/okvqa/commonsense/captions/captions_{split}_vqa.json'
     captions_comet_expansions_path = f'{data_root}/coco/okvqa/commonsense/expansions/caption_comet_expansions_{split}_vqa_v3.json'
-    questions_comet_expansions_path = f'{data_root}/coco/okvqa/commonsense/expansions/question_comet_expansions_{split}_{dataset}.json'
+    questions_comet_expansions_path = f'{data_root}/coco/okvqa/commonsense/expansions/fquestion_comet_expansions_{split}_{dataset}.json'
     cq_comet_expansions_path = f'{data_root}/coco/okvqa/commonsense/expansions/cq_comet_expansions_{split}_{dataset}.json'
     caption_expansion_sentences_path = f'{data_root}/coco/okvqa/commonsense/expansions/caption_expansion_sentences_{split}_{dataset}_{method}.{version}.json'
     question_expansion_sentences_path = f'{data_root}/coco/okvqa/commonsense/expansions/question_expansion_sentences_{split}_{dataset}_{method}.{version}.json'

@@ -12,8 +12,8 @@ else:
 
 # Define image and sentence embedder
 image_model = "clip-ViT-B-32"
-semantic_search_model = "sbert"
-# options = "multi-qa-mpnet-base-dot-v1" # "all-mpnet-base-v2"  # msmarco-roberta-base-ance-firstp - dot
+semantic_search_model =  "sbert-ok"
+# options =  "msmarco-roberta-base-ance-firstp" #"multi-qa-mpnet-base-dot-v1" # "all-mpnet-base-v2"  # msmarco-roberta-base-ance-firstp - dot
 # msmarco-roberta-base-v3"
 image_embedder = SentenceTransformer(image_model, device=device)
 sentence_embedder = SentenceTransformer(semantic_search_model, device=device)
