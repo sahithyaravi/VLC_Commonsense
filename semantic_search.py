@@ -12,7 +12,7 @@ else:
 
 # Define image and sentence embedder
 image_model = "clip-ViT-B-32"
-semantic_search_model =  "sbert-ok"
+semantic_search_model =  "sbert-aok"
 # options =  "msmarco-roberta-base-ance-firstp" #"multi-qa-mpnet-base-dot-v1" # "all-mpnet-base-v2"  # msmarco-roberta-base-ance-firstp - dot
 # msmarco-roberta-base-v3"
 image_embedder = SentenceTransformer(image_model, device=device)
@@ -40,7 +40,7 @@ def symmetric_search(queries, corpus, k=15, threshold=0.1):
 
         result_as_list.append(sent)
         result.append(" ".join(sent))
-        print(result)
+        # print(result)
     return result
 
 

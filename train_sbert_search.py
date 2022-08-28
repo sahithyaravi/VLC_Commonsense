@@ -34,9 +34,9 @@ def prepare_data_ok(exp_name, set_name, base_dir):
     questions = dict(
             zip(list(questions_df["question_id"].values), list(questions_df["question"].values)))
 
-    # Load expansions:
-    expansions = _load_json(
-        f'{root}/okvqa/commonsense/expansions/' + exp_name + '_okvqa_' + set_name + '.json')
+    # # Load expansions:
+    # expansions = _load_json(
+    #     f'{root}/okvqa/commonsense/expansions/' + exp_name + '_okvqa_' + set_name + '.json')
 
     # Load raw expansions:
     raw_expansions = _load_json(f'{root}/okvqa/commonsense/expansions/question_expansion_sentences_{set_name}_okvqa_{exp_name}.json')
@@ -102,8 +102,8 @@ def prepare_data(exp_name, set_name, base_dir):
         f'{root}/aokvqa/aokvqa_v1p0_' + set_name + '.json')
 
     # Load expansions:
-    expansions = _load_json(
-        f'{root}/aokvqa/commonsense/expansions/' + exp_name + '_aokvqa_' + set_name + '.json')
+    # expansions = _load_json(
+    #     f'{root}/aokvqa/commonsense/expansions/' + exp_name + '_aokvqa_' + set_name + '.json')
 
     raw_expansions = _load_json(
         f'{root}/aokvqa/commonsense/expansions/question_expansion_sentences_{set_name}_aokvqa_{exp_name}.json')
@@ -172,7 +172,7 @@ def train(train_file, base_dir):
     train_examples = [InputExample(texts=e['sents'], label=e['label']) for e in train_egs]
 
     # Define your train dataset, the dataloader and the train loss
-    train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=16)
+    train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=64)
     train_loss = losses.CosineSimilarityLoss(model)
 
     # Tune the model
@@ -210,14 +210,14 @@ if __name__ == '__main__':
         base_path = 'sbert-aok/'
         if not os.path.exists(base_path):
             os.makedirs(base_path)
-        savepath = prepare_data('semq.4', 'train', base_path)
+        savepath = prepare_data('semq.5', 'train', base_path)
         train(savepath, base_path)
         test(base_path)
     else:
         base_path = 'sbert-ok/'
         if not os.path.exists(base_path):
             os.makedirs(base_path)
-        savepath = prepare_data_ok('semq.4', 'train', base_path)
+        savepath = prepare_data_ok('semq.5', 'train', base_path)
         train(savepath, base_path)
         test(base_path)
 
