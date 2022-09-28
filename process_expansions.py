@@ -30,7 +30,6 @@ def expansions_to_sentences(expansions, questions, original_sentences, save_path
                             use_cached=True, method='sem-q'):
     """
     Converts all the expansions from COMET into phrases or sentences using a template and text processing.
-
     Parameters
     ----------
     expansions : The expansions in structured format from COMET
@@ -40,11 +39,9 @@ def expansions_to_sentences(expansions, questions, original_sentences, save_path
     parallel : Generate sentences with multi-processing/in parallel
     use_cached : If set to True, this will use the already saved sentences file if present.
     questions: questions are used to decide the subject in some cases.
-
     Returns
     -------
     The expansions converted to sentences{id1:[list of sentences for id1].....}
-
     """
     if os.path.exists(save_path) and use_cached:
         logger.info(f"Using already cached sentences file: {save_path}")
@@ -67,7 +64,6 @@ def expansions_to_sentences(expansions, questions, original_sentences, save_path
         all_contexts = dict(zip(keys, contexts))
         save_json(save_path, all_contexts)
     return all_contexts
-
 
 def search_expansions(expansions, questions_df, parallel=False, method="semq"):
     def single_image_semantic_search(img_path, image_expansion_sentences, qdf):
@@ -128,7 +124,7 @@ if __name__ == '__main__':
         # if "question_phrase" not in questions_df.columns:
         #     questions_df = prepare("sem-q", questions_df)
         question_phrases = dict(
-            zip(list(questions_df["question_id"].values), list(questions_df["question_phrase"].values)))
+            zip(list(questions_df["question_id"].values), list(questions_df["question_obj_phrase"].values)))
         question_expansions = load_json(questions_comet_expansions_path)
         expansion_sentences = expansions_to_sentences(question_expansions,
                                                       questions_df,
@@ -165,5 +161,6 @@ if __name__ == '__main__':
     else:
         expansion_sentences = {}
 
+    print("Saved sentences!")
     final_results = search_expansions(expansion_sentences, questions_df, parallel=False)
     save_json(final_expansion_save_path + ".json", final_results)

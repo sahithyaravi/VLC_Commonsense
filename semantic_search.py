@@ -12,7 +12,7 @@ else:
 
 # Define image and sentence embedder
 image_model = "clip-ViT-B-32"
-semantic_search_model =  "sbert-aok"
+semantic_search_model =  "/ubc/cs/research/nlp/sahiravi/vlc_transformer/sbert-aok-qo"
 # options =  "msmarco-roberta-base-ance-firstp" #"multi-qa-mpnet-base-dot-v1" # "all-mpnet-base-v2"  # msmarco-roberta-base-ance-firstp - dot
 # msmarco-roberta-base-v3"
 image_embedder = SentenceTransformer(image_model, device=device)

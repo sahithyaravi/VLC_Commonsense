@@ -19,11 +19,12 @@ class ExpansionConverter:
     def __init__(self):
         self.nlp = spacy.load('en_core_web_md')
         self.srl_predictor = "https://storage.googleapis.com/allennlp-public-models/structured-prediction-srl-bert.2020.12.15.tar.gz"
+
         # object and subject constants
         self.OBJECT_DEPS = {"dobj", "dative", "attr", "oprd"}
         self.SUBJECT_DEPS = {"nsubj", "nsubjpass", "csubj", "agent", "expl"}
 
-        # Exclude these
+        # Exclude these subjects
         self.exclude_list = ['what is', 'what are', 'where', 'where is', 'where are', 'what',
                              'how are', 'how many', 'how is', 'how', 'where is', 'where are', 'where',
                              'when was', 'when is',
@@ -72,31 +73,32 @@ class ExpansionConverter:
         :param srl: if srl should be used for generating person x
         :return:
         """
-        context = []
-        top_context = []
+        context, top_context = [],[]
         seen = set()
+
+        # lower case relations
         excluded = [x.lower() for x in self.excluded_relations]
+        
+        # personx: the subject from the sentence inputted to COMET
         personx = ""
         if question:
-            # # For negative questions, do not exclude not relations
-            # if "not" in question.split(" "):
-            #     excluded.remove("notmadeof")
-            #     excluded.remove("nothasproperty")
             personx_q = self.get_personx(question.replace("_", ""))
-
-        # if not question or not personx:
-        personx = self.get_personx(sentence.replace("_", ""))
+            personx = personx_q
+        
+        if not question or not personx_q:
+                personx = self.get_personx(sentence.replace("_", ""))
 
         for relation, beams in exp.items():
             if relation.lower() not in excluded:
-                top_context.append(
-                    relation_map[relation.lower()].replace("{0}", personx).replace("{1}", beams[0]) + ".")
                 for beam in beams:
                     source = personx
+
                     if beam != " none":
                         target = beam.lstrip().translate(str.maketrans('', '', string.punctuation))
+
                         if relation in self.atomic_relations and not self.is_person(source):
                             continue
+
                         if target and target!=source and ("none" not in target) and (target not in seen) and (not self.lexical_overlap(seen,
                                                                                                                target)):
                             if exclude_subject:
@@ -106,7 +108,6 @@ class ExpansionConverter:
                                 sent = sent.capitalize()
                             context.append(sent)
                             seen.add(target)
-        # print(context)
         return [context, top_context]
 
     def is_person(self, word):
@@ -153,7 +154,7 @@ class ExpansionConverter:
                 return ""
         else:
             subj_head = svos[0][0]
-            print("SUBJ HEAD", subj_head)
+            # print("SUBJ HEAD", subj_head)
             # is_named_entity = subj_head[0].root.pos_ == "PROP"
             personx = subj_head[0].text
             # " ".join([t.text for t in list(subj_head.lefts) + [subj_head] + list(subj_head.rights)])

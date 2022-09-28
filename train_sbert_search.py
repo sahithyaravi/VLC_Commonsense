@@ -205,19 +205,19 @@ def test(base_dir):
 
 
 if __name__ == '__main__':
-    aok = False
+    aok = True
     if aok:
-        base_path = 'sbert-aok/'
+        base_path = 'sbert-aok-qo/'
         if not os.path.exists(base_path):
             os.makedirs(base_path)
-        savepath = prepare_data('semq.5', 'train', base_path)
+        savepath = prepare_data('semq.o', 'train', base_path)
         train(savepath, base_path)
         test(base_path)
     else:
-        base_path = 'sbert-ok/'
+        base_path = 'sbert-ok-qo/'
         if not os.path.exists(base_path):
             os.makedirs(base_path)
-        savepath = prepare_data_ok('semq.5', 'train', base_path)
+        savepath = prepare_data_ok('semq.o', 'train', base_path)
         train(savepath, base_path)
         test(base_path)
 

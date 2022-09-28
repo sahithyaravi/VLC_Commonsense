@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 # Configure parameters for semantic search
 # Methods to pick the final expansions
 method = 'semq'  # [sem1- caption, sem2-caption+question]
-version = '6'  # version of semantic search results
+version = 'o'  # version of semantic search results
 dataset = 'aokvqa'  # dataset 'vcr', 'okvqa' or 'aokvqa
 data_root = "/Users/sahiravi/Documents/Research/VL project/scratch/data"  # root of the dataset folder arranged similar to VLC-BERT
 data_root = "/ubc/cs/research/nlp/sahiravi/vlc_transformer/scratch/data"
@@ -29,7 +29,7 @@ if dataset == "okvqa":
     question_csv = questions_path.split("json")[0] + 'csv'
     captions_path = f'{data_root}/coco/okvqa/commonsense/captions/captions_{split}_vqa.json'
     captions_comet_expansions_path = f'{data_root}/coco/okvqa/commonsense/expansions/caption_comet_expansions_{split}_vqa_v3.json'
-    questions_comet_expansions_path = f'{data_root}/coco/okvqa/commonsense/expansions/foquestion_comet_expansions_{split}_{dataset}.json'
+    questions_comet_expansions_path = f'{data_root}/coco/okvqa/commonsense/expansions/objquestion_comet_expansions_{split}_{dataset}.json'
     cq_comet_expansions_path = f'{data_root}/coco/okvqa/commonsense/expansions/cq_comet_expansions_{split}_{dataset}.json'
     caption_expansion_sentences_path = f'{data_root}/coco/okvqa/commonsense/expansions/caption_expansion_sentences_{split}_{dataset}_{method}.{version}.json'
     question_expansion_sentences_path = f'{data_root}/coco/okvqa/commonsense/expansions/question_expansion_sentences_{split}_{dataset}_{method}.{version}.json'
@@ -45,7 +45,7 @@ elif dataset == 'vcr':
     question_csv = questions_path.split("jsonl")[0] + 'csv'
     captions_path = f'{data_root}/vcr/commonsense/captions/captions_{split}_{dataset}.json'
     captions_comet_expansions_path = f'{data_root}/vcr/commonsense/expansions/caption_comet_expansions_{split}_{dataset}.json'
-    questions_comet_expansions_path = f'{data_root}/vcr/commonsense/expansions/question_comet_expansions_{split}_{dataset}.json'
+    questions_comet_expansions_path = f'{data_root}/vcr/commonsense/expansions/objquestion_comet_expansions_{split}_{dataset}.json'
     caption_expansion_sentences_path = f'{data_root}/vcr/commonsense/expansions/caption_expansion_sentences_{split}_{dataset}_{method}.{version}.json'
     question_expansion_sentences_path = f'{data_root}/vcr/commonsense/expansions/question_expansion_sentences_{split}_{dataset}_{method}.{version}.json'
     final_expansion_save_path = f'{data_root}/vcr/commonsense/expansions/{method}.{version}_{dataset}_{split}'
@@ -57,7 +57,7 @@ elif dataset == 'aokvqa':
     question_csv = questions_path.split("json")[0] + 'csv'
     captions_path = f'{data_root}/coco/aokvqa/commonsense/captions/captions_{split}_{dataset}.json'
     captions_comet_expansions_path = f'{data_root}/coco/aokvqa/commonsense/expansions/caption_comet_expansions_{split}_{dataset}.json'
-    questions_comet_expansions_path = f'{data_root}/coco/aokvqa/commonsense/expansions/foquestion_comet_expansions_{split}_{dataset}.json'
+    questions_comet_expansions_path = f'{data_root}/coco/aokvqa/commonsense/expansions/objquestion_comet_expansions_{split}_{dataset}.json'
     cq_comet_expansions_path = f'{data_root}/coco/aokvqa/commonsense/expansions/cq_comet_expansions_{split}_{dataset}.json'
     caption_expansion_sentences_path = f'{data_root}/coco/aokvqa/commonsense/expansions/caption_expansion_sentences_{split}_{dataset}_{method}.{version}.json'
     question_expansion_sentences_path = f'{data_root}/coco/aokvqa/commonsense/expansions/question_expansion_sentences_{split}_{dataset}_{method}.{version}.json'
