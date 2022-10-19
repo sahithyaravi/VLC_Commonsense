@@ -1,5 +1,5 @@
-# vlc_transformer
-This repo is part of the VLC-BERT project.
+# VLC-Commonsense
+This repo is part of the VLC-BERT project (https://github.com/aditya10/VLC-BERT).
 
 
 ### Download data and organize expansions
@@ -10,10 +10,13 @@ ln -s DATA_PATH ./
 
 ### Install requirements
 pip install -r requirements.txt
-Download coco model for captioning: gdown --id 1IdaBtMSvtyzF0ByVaBHtvM0JYSXRExRX
-(or link: https://drive.google.com/file/d/1IdaBtMSvtyzF0ByVaBHtvM0JYSXRExRX/view)
+
 ### Configure 
-Set paths for images, expansions, method to generate context in config.py
+Set paths for images, COMET expansions, method to generate context in config.py
 
 ### To process expansions
 python process_expansions.py
+
+### To train S-BERT (Augmented S-BERT)
+python train_sbert_search.py
+
