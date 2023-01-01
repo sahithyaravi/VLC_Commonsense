@@ -3,7 +3,7 @@ This repo is part of the VLC-BERT project (https://github.com/aditya10/VLC-BERT)
 
 
 ### Download data and organize expansions
-Follow all the steps for data download and organization from https://github.com/aditya10/VLC-BERT/blob/master/QUICK_SETUP.md
+Follow all the steps for data download and organization from https://github.com/aditya10/VLC-BERT/blob/master/README.md
 mkdir data
 cd data
 ln -s DATA_PATH ./
