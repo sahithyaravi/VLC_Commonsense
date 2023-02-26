@@ -1,0 +1,15 @@
+sentence_transformers==2.1.0
+joblib==1.1.0
+matplotlib==3.5.1
+networkx==2.6.3
+numpy==1.22.2
+pandas==1.4.0
+Pillow==9.0.1
+scikit-image
+spacy==3.2.1
+textacy==0.12.0
+torch==1.10.2
+tqdm==4.62.3
+git+https://github.com/openai/CLIP.git
+gdown
+pytorch-pretrained-bert
